@@ -16,14 +16,14 @@ void handle_command(char *request, char *response) {
     cout << "command handled" << endl;
 }
 
-int prepare_cmd_socket(sockaddr_in& admin_client_address){
+int prepare_cmd_socket(sockaddr_in& server_cmd_address){
     int cmd_socket = socket(AF_INET, SOCK_DGRAM, 0);
 
-    admin_client_address.sin_family =  AF_INET;
-    admin_client_address.sin_port = htons(CMD_PORT);
-    admin_client_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_cmd_address.sin_family =  AF_INET;
+    server_cmd_address.sin_port = htons(CMD_PORT);
+    server_cmd_address.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(cmd_socket, (sockaddr *) &admin_client_address, sizeof(admin_client_address))) {
+    if (bind(cmd_socket, (sockaddr *) &server_cmd_address, sizeof(server_cmd_address))) {
         cout << "failed to bind command socket";
         return -1;
     } else
@@ -46,8 +46,10 @@ int main(){
         cout << "admin socket is bound" << endl;
     }
 
+    sockaddr_in server_cmd_address{};
+    int cmd_socket = prepare_cmd_socket(server_cmd_address);
+
     sockaddr_in admin_client_address{};
-    int cmd_socket = prepare_cmd_socket(admin_client_address);
     socklen_t admin_socklen = sizeof(admin_client_address);
 
     sockaddr_in msg_server{};

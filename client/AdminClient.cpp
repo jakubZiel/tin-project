@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
     sockaddr_in server_address{};
 
-    server_address.sin_port = htons(ADMIN_PORT);
+    server_address.sin_port = htons(CMD_PORT);
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
