@@ -3,14 +3,13 @@
 //
 #include <iostream>
 #include <unistd.h>
-#include <cstring>
 
 #include "sockets.h"
 
 using namespace std;
 
 int main(int argc, char** argv) {
-
+    cout << SO_SNDBUF << endl;
     int client_socket = socket(AF_INET, SOCK_DGRAM, 0);
 
     struct timeval tv;

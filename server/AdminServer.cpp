@@ -13,41 +13,31 @@ void find_record(char *request, char *response){
 }
 
 void handle_command(char *request, char *response) {
-    cout << "command handled" << endl;
+    cout << "command handled : " << request << endl;
+    strcpy(response, "HANDLED");
 }
 
-int prepare_cmd_socket(sockaddr_in& server_cmd_address){
-    int cmd_socket = socket(AF_INET, SOCK_DGRAM, 0);
+int bind_socket(int protocol_type, in_addr_t address, int port, sockaddr_in& local_address){
+    int n_socket = socket(AF_INET, protocol_type, 0);
+    local_address.sin_family =  AF_INET;
+    local_address.sin_port = htons(port);
+    local_address.sin_addr.s_addr = address;
 
-    server_cmd_address.sin_family =  AF_INET;
-    server_cmd_address.sin_port = htons(CMD_PORT);
-    server_cmd_address.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(cmd_socket, (sockaddr *) &server_cmd_address, sizeof(server_cmd_address))) {
+    if (bind(n_socket, (sockaddr *) &local_address, sizeof(local_address))) {
         cout << "failed to bind command socket";
         return -1;
     } else
         cout << "command socket is bound" << endl;
-
-    return cmd_socket;
+    return n_socket;
 }
 
 int main(){
-    int admin_socket = socket(AF_INET, SOCK_STREAM, 0);
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(ADMIN_PORT);
+    sockaddr_in server_admin_address{};
+    int admin_socket = bind_socket(SOCK_STREAM, INADDR_ANY, ADMIN_PORT, server_admin_address);
 
-    if (bind(admin_socket, (sockaddr*) &addr, sizeof(addr))){
-        cout << "failed to bind admin socket";
-        return -1;
-    }else {
-        cout << "admin socket is bound" << endl;
-    }
 
     sockaddr_in server_cmd_address{};
-    int cmd_socket = prepare_cmd_socket(server_cmd_address);
+    int cmd_socket = bind_socket(SOCK_DGRAM, INADDR_ANY, CMD_PORT, server_cmd_address);
 
     sockaddr_in admin_client_address{};
     socklen_t admin_socklen = sizeof(admin_client_address);
@@ -82,12 +72,12 @@ int main(){
             cout << "waiting for queries..." << endl;
 
             while (true) {
-                ready_sockets =server_sockets;
-
+                ready_sockets = server_sockets;
                 if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0){
                     cout << "select fail, errno : " << endl;
                     return errno;
                 }
+
                 if (FD_ISSET(connection_socket,  &ready_sockets)){
                     long status = recv(connection_socket, request, sizeof(request), 0);
                     find_record(request, response);

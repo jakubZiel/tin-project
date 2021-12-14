@@ -62,7 +62,6 @@ int main() {
 
     map<string, int> clients_datagram_count;
 
-
     while (number_of_connections) {
 
         recvfrom(socket_fd, client_id, sizeof(client_id), 0, (sockaddr*) &client, &socklen);
