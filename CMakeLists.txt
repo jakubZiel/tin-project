@@ -12,7 +12,8 @@ add_executable(tin-client
         )
 
 add_executable(server-adm
-            server/AdminServer.cpp
+        server/ServerAdmin.cpp
+        server/AdminServer.cpp
         )
 
 add_executable(client-adm

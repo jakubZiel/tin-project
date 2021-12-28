@@ -63,7 +63,7 @@ int main() {
     map<string, int> clients_datagram_count;
 
     while (number_of_connections) {
-
+        //TODO add signalfd , add select
         recvfrom(socket_fd, client_id, sizeof(client_id), 0, (sockaddr*) &client, &socklen);
         cout << "dgram from client: " << client_id << " #"<< 100 - number_of_connections + 1 << endl;
         clients_datagram_count[client_id]++;
