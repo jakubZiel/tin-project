@@ -16,7 +16,7 @@ AdminServer::AdminServer() {
     server_cmd_address = inet_association(AF_INET, CMD_PORT, INADDR_ANY);
 
     msg_server_address_size = sizeof(msg_server_address);
-
+    admin_client_address_size = sizeof(admin_client_address);
 
     _request = vector<char>(50);
     _response = vector<char>(50);
@@ -28,6 +28,7 @@ AdminServer::AdminServer() {
 }
 
 int AdminServer::run() {
+
 
     admin_socket = bind_socket(SOCK_STREAM, admin_server_address);
     cmd_socket = bind_socket(SOCK_DGRAM, server_cmd_address);
@@ -50,7 +51,6 @@ int AdminServer::run() {
             handle_msg_server_failed_connection();
         }
     }
-
     close(cmd_socket);
     close(admin_socket);
     return 0;
@@ -118,7 +118,7 @@ void AdminServer::prepare_fdset() {
 sockaddr_in AdminServer::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address) {
     sockaddr_in association{};
     association.sin_family = in_family;
-    association.sin_port = port;
+    association.sin_port = htons(port);
     association.sin_addr.s_addr = address;
     return association;
 }
@@ -130,4 +130,9 @@ void AdminServer::find_record(std::vector<char> &request, std::vector<char> &res
 void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &response) {
     cout << "command handled : " << request.data() << endl;
     strcpy(response.data(), "HANDLED");
+}
+
+int main(){
+    AdminServer adminServer;
+    adminServer.run();
 }

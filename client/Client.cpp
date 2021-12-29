@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     while (true){
 
         sleep(1);
-        if (sendto(client_socket, request_buffer, sizeof(request_buffer), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+        if (sendto(client_socket, request_buffer, sizeof(request_buffer),  , (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
             cout << "send / err :" << errno << endl;
             break;
         }
