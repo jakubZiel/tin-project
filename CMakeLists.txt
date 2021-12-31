@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.19.2)
 project(tin_21z)
 include_directories(include)
 
@@ -17,4 +17,4 @@ add_executable(server-adm
 
 add_executable(client-adm
         client/AdminClient.cpp
-        )
+        include/AdminClient.h)
