@@ -19,6 +19,7 @@ Server::Server() {
     admin_response = vector<char>(50);
 
     clients_datagram_count = map<string, int>(); // TODO is it necessary?
+    server_active = true;
 
 }
 
@@ -32,11 +33,6 @@ sockaddr_in Server::associate_inet(sa_family_t in_family, in_port_t port, in_add
 
 int Server::connect_to_admin() {
     admin_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    sockaddr_in address{};
-    address.sin_family =  AF_INET;
-    address.sin_port = htons(ADMIN_PORT);
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     int connection_status = connect(admin_socket, (sockaddr*) &admin_server_address, sizeof(admin_server_address));
     if (connection_status == -1){
@@ -73,23 +69,20 @@ int Server::run() {
     sockaddr_in client{};
     socklen_t socklen = sizeof(client);
 
-    while (number_of_connections) {
+    while (server_active) {
         //TODO add signalfd , add select
         recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr*) &client, &socklen);
-        cout << "Datagram from client: " << client_id.data() << " #"<< 100 - number_of_connections + 1 << endl;
+        cout << "Datagram from client: " << client_id.data() << endl;
         clients_datagram_count[client_id.data()]++;
-        number_of_connections--;
 
         strcpy(admin_query.data(), "SOME_QUERY");
         query_admin(admin_query.data());
 
-        if (number_of_connections == 0)
-            strcpy(response.data(), "LAST");
-        else
-            strcpy(response.data(), client_id.data());
+        strcpy(response.data(), client_id.data());
         sendto(server_socket, response.data(), response.size(), 0, (sockaddr*) &client, sizeof(client));
     }
 
+    // TODO remove in the future, development purposes
     for (const auto& client_record : clients_datagram_count) {
         cout << "Client nr:" + client_record.first + " sent:" << client_record.second << endl;
     }

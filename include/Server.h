@@ -9,7 +9,6 @@ public:
     Server();
     int run();
 private:
-    int number_of_connections = NUMBER_OF_CONNECTIONS; // TODO remove in the future, for development purposes
     int server_socket{};
     int admin_socket{};
 
@@ -28,6 +27,8 @@ private:
     int connect_to_admin();
     static int bind_socket(int protocol_type, sockaddr_in& address_to_bind);
     size_t query_admin(char* query);
+
+    bool server_active;
 
 };
 #endif //TIN_21Z_SERVER_H
