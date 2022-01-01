@@ -1,84 +1,93 @@
-//
-// Created by jakub on 11.10.2021.
-//
-
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
 #include <map>
 
 #include "sockets.h"
+#include "Server.h"
 
 using namespace std;
 
-int connect_to_admin(){
-    int admin_socket = socket(AF_INET, SOCK_STREAM, 0);
+Server::Server() {
 
-    sockaddr_in server_address{};
-    server_address.sin_family =  AF_INET;
-    server_address.sin_port = htons(ADMIN_PORT);
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_address = associate_inet(AF_INET, SERVER_PORT, INADDR_ANY);
+    admin_server_address = associate_inet(AF_INET, ADMIN_PORT, inet_addr("127.0.0.1"));
 
-    int connection_status = connect(admin_socket, (sockaddr*) &server_address, sizeof(server_address));
+    client_id = vector<char>(50);
+    response = vector<char>(50);
+    admin_query = vector<char>(50);
+    admin_response = vector<char>(50);
+
+    clients_datagram_count = map<string, int>(); // TODO is it necessary?
+
+}
+
+sockaddr_in Server::associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address) {
+    sockaddr_in association{};
+    association.sin_family = in_family;
+    association.sin_port = htons(port);
+    association.sin_addr.s_addr = address;
+    return association;
+}
+
+int Server::connect_to_admin() {
+    admin_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    sockaddr_in address{};
+    address.sin_family =  AF_INET;
+    address.sin_port = htons(ADMIN_PORT);
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    int connection_status = connect(admin_socket, (sockaddr*) &admin_server_address, sizeof(admin_server_address));
     if (connection_status == -1){
-        cout << "failed to connect to admin server";
+        cout << "failed to connect to admin server, errno: " << errno;
         return errno;
     }
     cout << "connected to admin server" << endl;
     return admin_socket;
 }
 
-size_t query_admin(int admin_socket, char* query, char* response){
-    int request_size;
-    send(admin_socket, query, sizeof(query), 0);
-    return recv(admin_socket, response, sizeof(response), 0);
-}
+int Server::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
+    int n_socket = socket(AF_INET, protocol_type, 0);
 
-int main() {
-
-    int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    int number_of_connections = 100;
-
-    int admin_socket = connect_to_admin();
-
-    sockaddr_in addr{};
-
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(SERVER_PORT);
-
-    if (bind(socket_fd, (sockaddr *) &addr, sizeof(addr))) {
-        cout << "failed to bind socket";
+    if (bind(n_socket, (sockaddr *) &address_to_bind, sizeof(address_to_bind))) {
+        cout << "failed to bind command socket";
         return -1;
     } else
-        cout << "socket is bound" << endl;
+        cout << "command socket is bound" << endl;
+    return n_socket;
+}
+
+size_t Server::query_admin(char* query){
+    int request_size;
+    send(admin_socket, query, sizeof(query), 0);
+    return recv(admin_socket, admin_response.data(), admin_response.size(), 0);
+}
+
+int Server::run() {
+
+    admin_socket = connect_to_admin();
+
+    server_socket = bind_socket(SOCK_DGRAM, server_address);
 
     sockaddr_in client{};
     socklen_t socklen = sizeof(client);
 
-    char client_id[40];
-    char response[40];
-
-    map<string, int> clients_datagram_count;
-
     while (number_of_connections) {
         //TODO add signalfd , add select
-        recvfrom(socket_fd, client_id, sizeof(client_id), 0, (sockaddr*) &client, &socklen);
-        cout << "dgram from client: " << client_id << " #"<< 100 - number_of_connections + 1 << endl;
-        clients_datagram_count[client_id]++;
+        recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr*) &client, &socklen);
+        cout << "dgram from client: " << client_id.data() << " #"<< 100 - number_of_connections + 1 << endl;
+        clients_datagram_count[client_id.data()]++;
         number_of_connections--;
 
-        char admin_query[40];
-        strcpy(admin_query, "SOME_QUERY");
-        char admin_response[40];
-        query_admin(admin_socket, admin_query, admin_response);
+        strcpy(admin_query.data(), "SOME_QUERY");
+        query_admin(admin_query.data());
 
         if (number_of_connections == 0)
-            strcpy(response, "LAST");
+            strcpy(response.data(), "LAST");
         else
-            strcpy(response, client_id);
-        sendto(socket_fd, response, sizeof(response), 0, (sockaddr*) &client, sizeof(client));
+            strcpy(response.data(), client_id.data());
+        sendto(server_socket, response.data(), response.size(), 0, (sockaddr*) &client, sizeof(client));
     }
 
     for (const auto& client_record : clients_datagram_count) {
@@ -86,3 +95,9 @@ int main() {
     }
     return 0;
 }
+
+int main() {
+    Server server;
+    server.run();
+}
+
