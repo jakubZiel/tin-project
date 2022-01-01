@@ -1,72 +1,84 @@
-//
-// Created by jakub on 11.10.2021.
-//
-
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
 
-#include "sockets.h"
+#include "Client.h"
 
 using namespace std;
 
-int main(int argc, char** argv) {
-
-    if (argc < 2){
-        cout << "missing client number";
-        return -2;
-    }
-    int client_socket = socket(AF_INET, SOCK_DGRAM, 0);
-
-    struct timeval tv;
+Client::Client(char * request) {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
 
-    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        perror("Error");
-    }
+    server_address = inet_association(AF_INET, SERVER_PORT, inet_addr("127.0.0.1"));
 
-    sockaddr_in server_address{};
+    request_buffer = vector<char>(50);
+    strcpy(request_buffer.data(), request);
+    is_last = vector<char>(50);
+}
 
-    server_address.sin_port = htons(SERVER_PORT);
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+int Client::run() {
 
-
-    char request_buffer[40];
-    char is_last[40];
-    strcpy(request_buffer, argv[1]);
+    client_socket = init_socket(SOCK_DGRAM);
 
     int counter = 0;
-    while (true){
-
+    while (true) {
         sleep(1);
-        if (sendto(client_socket, request_buffer, sizeof(request_buffer), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
-            cout << "send / err :" << errno << endl;
+
+        if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+            cout << "Send / Err :" << errno << endl;
             break;
         }
         else {
             counter++;
-            cout << "wrote " << counter << endl;
+            cout << "Wrote " << counter << endl;
         }
         socklen_t server_address_len = sizeof(server_address);
-        if (recvfrom(client_socket, is_last, sizeof(is_last), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
 
-            switch(errno){
+        if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
+
+            switch(errno) {
                 case CONNECTION_REFUSED:
-                    cout << "receive / connection refused" << endl;
+                    cout << "Receive / Connection refused" << endl;
                     break;
                 case TIMEOUT:
-                    cout << "receive / timeout" << endl;
+                    cout << "Receive / Timeout" << endl;
                     break;
                 default:
-                    cout << "receive / unknown error" << endl;
+                    cout << "Receive / Unknown error" << endl;
             }
-             break;
+            break;
         }
-        cout <<"message for :" << is_last << endl;
-
+        cout << "Message for :" << is_last.data() << endl;
     }
-    cout << "client :" << request_buffer << " sent :" << counter;
+
+    cout << "Client :" << request_buffer.data() << " Sent :" << counter;
     return 0;
+}
+
+int Client::init_socket(int protocol_type) {
+    int n_socket = socket(AF_INET, protocol_type, 0);
+    if (setsockopt(n_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        perror("Error setting socket options");
+    }
+    return n_socket;
+}
+
+sockaddr_in Client::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address) {
+    sockaddr_in association{};
+    association.sin_family = in_family;
+    association.sin_port = htons(port);
+    association.sin_addr.s_addr = address;
+    return association;
+}
+
+int main(int argc, char** argv) {
+
+    if (argc < 2) {
+        cout << "Missing client number";
+        return -2;
+    }
+
+    Client client(argv[1]);
+    client.run();
 }
