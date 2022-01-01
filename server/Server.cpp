@@ -40,10 +40,10 @@ int Server::connect_to_admin() {
 
     int connection_status = connect(admin_socket, (sockaddr*) &admin_server_address, sizeof(admin_server_address));
     if (connection_status == -1){
-        cout << "failed to connect to admin server, errno: " << errno;
+        cout << "Failed to connect to admin server, errno: " << errno << endl;
         return errno;
     }
-    cout << "connected to admin server" << endl;
+    cout << "Connected to admin server." << endl;
     return admin_socket;
 }
 
@@ -51,10 +51,10 @@ int Server::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
     int n_socket = socket(AF_INET, protocol_type, 0);
 
     if (bind(n_socket, (sockaddr *) &address_to_bind, sizeof(address_to_bind))) {
-        cout << "failed to bind command socket";
+        cout << "Failed to bind socket, errno: " << errno;
         return -1;
     } else
-        cout << "command socket is bound" << endl;
+        cout << "Socket is bound." << endl;
     return n_socket;
 }
 
@@ -76,7 +76,7 @@ int Server::run() {
     while (number_of_connections) {
         //TODO add signalfd , add select
         recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr*) &client, &socklen);
-        cout << "dgram from client: " << client_id.data() << " #"<< 100 - number_of_connections + 1 << endl;
+        cout << "Datagram from client: " << client_id.data() << " #"<< 100 - number_of_connections + 1 << endl;
         clients_datagram_count[client_id.data()]++;
         number_of_connections--;
 
@@ -91,7 +91,7 @@ int Server::run() {
     }
 
     for (const auto& client_record : clients_datagram_count) {
-        cout << "client nr :" + client_record.first + "sent :" << client_record.second << endl;
+        cout << "Client nr:" + client_record.first + " sent:" << client_record.second << endl;
     }
     return 0;
 }
