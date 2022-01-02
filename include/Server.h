@@ -11,9 +11,9 @@ public:
 private:
     int server_socket{};
     int admin_socket{};
+    fd_set sockets, ready_sockets;
 
     sockaddr_in server_address{};
-    sockaddr_in client_address{};
     sockaddr_in admin_server_address{};
     static sockaddr_in associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address);
 
@@ -30,5 +30,6 @@ private:
 
     bool server_active;
 
+    void prepare_fdset();
 };
 #endif //TIN_21Z_SERVER_H
