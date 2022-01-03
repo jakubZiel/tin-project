@@ -89,8 +89,10 @@ void AdminServer::handle_query() {
 }
 
 void AdminServer::handle_command_request() {
+    admin_client_address_size = sizeof (admin_client_address);
     recvfrom(cmd_socket, _command.data(), _command.size(), 0, (sockaddr*) &admin_client_address, &admin_client_address_size);
     handle_command(_command, _command_response);
+    auto x = ntohs(admin_client_address.sin_port);
     sendto(cmd_socket, _command_response.data(), _command_response.size(), 0, (sockaddr*) &admin_client_address, admin_client_address_size);
 }
 

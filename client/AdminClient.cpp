@@ -13,6 +13,7 @@ int main() {
 
     AdminClient adminClient;
     adminClient.run();
+    return 0;
 }
 
 AdminClient::AdminClient() {
@@ -26,16 +27,13 @@ AdminClient::AdminClient() {
 }
 
 int AdminClient::init_socket(int protocol_type){
-    int client_socket = socket(AF_INET, protocol_type, 0);
-    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        perror("Error");
-    }
+    client_socket = socket(AF_INET, protocol_type, 0);
 }
 
 sockaddr_in AdminClient::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address){
     sockaddr_in association{};
     association.sin_family = in_family;
-    association.sin_port = port;
+    association.sin_port = htons(port);
     association.sin_addr.s_addr = address;
 
     return association;
@@ -77,7 +75,7 @@ bool AdminClient::get_response() {
 }
 
 int AdminClient::run() {
-    client_socket = init_socket(SOCK_DGRAM);
+    init_socket(SOCK_DGRAM);
 
     bool contin = true;
 
