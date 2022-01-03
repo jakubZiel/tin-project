@@ -77,6 +77,7 @@ int Server::run() {
         if (select(FD_SETSIZE, nullptr, &ready_sockets, nullptr, nullptr) < 0) {
             cout << "Select fail, errno: " << errno << endl;
         } else if (FD_ISSET(server_socket, &ready_sockets)){
+            recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr*) &client, &socklen);
             cout << "Datagram from client: " << client_id.data() << endl;
             clients_datagram_count[client_id.data()]++;
 
@@ -86,16 +87,7 @@ int Server::run() {
             strcpy(response.data(), client_id.data());
             sendto(server_socket, response.data(), response.size(), 0, (sockaddr*) &client, sizeof(client));
         }
-//        recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr*) &client, &socklen);
-//        cout << "Datagram from client: " << client_id.data() << endl;
-//        clients_datagram_count[client_id.data()]++;
-//
-//        strcpy(admin_query.data(), "SOME_QUERY");
-//        query_admin(admin_query.data());
-//
-//        strcpy(response.data(), client_id.data());
-//        sendto(server_socket, response.data(), response.size(), 0, (sockaddr*) &client, sizeof(client));
-    }
+
     FD_CLR(server_socket, &sockets);
     close(server_socket);
     // TODO remove in the future, development purposes
