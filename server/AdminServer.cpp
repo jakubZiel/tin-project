@@ -131,3 +131,9 @@ void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &
     cout << "command handled : " << request.data() << endl;
     strcpy(response.data(), "HANDLED");
 }
+
+int main(){
+    AdminServer server;
+    server.run();
+    return 0;
+}
