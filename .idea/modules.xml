@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/tin-21z.iml" filepath="$PROJECT_DIR$/.idea/tin-21z.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/tin_21z.iml" filepath="$PROJECT_DIR$/.idea/tin_21z.iml" />
     </modules>
   </component>
