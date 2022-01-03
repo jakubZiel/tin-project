@@ -118,7 +118,7 @@ void AdminServer::prepare_fdset() {
 sockaddr_in AdminServer::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address) {
     sockaddr_in association{};
     association.sin_family = in_family;
-    association.sin_port = port;
+    association.sin_port = htons(port);
     association.sin_addr.s_addr = address;
     return association;
 }
