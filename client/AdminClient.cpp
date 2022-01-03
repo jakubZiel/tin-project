@@ -4,59 +4,89 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "sockets.h"
+#include "AdminClient.h"
 
 using namespace std;
 
-int main(int argc, char** argv) {
-    cout << SO_SNDBUF << endl;
-    int client_socket = socket(AF_INET, SOCK_DGRAM, 0);
+int main() {
+    //cout << SO_SNDBUF << endl;
 
-    struct timeval tv;
+    AdminClient adminClient;
+    adminClient.run();
+}
+
+AdminClient::AdminClient() {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
 
+    server_address = inet_association(AF_INET, CMD_PORT, inet_addr("127.0.0.1"));
+
+    _command = vector<char>(50);
+    _response = vector<char>(50);
+}
+
+int AdminClient::init_socket(int protocol_type){
+    int client_socket = socket(AF_INET, protocol_type, 0);
     if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
         perror("Error");
     }
+}
 
-    sockaddr_in server_address{};
+sockaddr_in AdminClient::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address){
+    sockaddr_in association{};
+    association.sin_family = in_family;
+    association.sin_port = port;
+    association.sin_addr.s_addr = address;
 
-    server_address.sin_port = htons(CMD_PORT);
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    return association;
+}
 
-    char command[40];
-    char response[40];
+bool AdminClient::send_command() {
+    cout <<  "Command to run on server\n";
+    cin >> _command.data();
 
-    while (true){
-        cout <<  "Command to run on server\n";
-        cin >> command;
-
-        if (sendto(client_socket, command, sizeof(command), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
-            cout << "send / err :" << errno << endl;
-            break;
-        }
-        else {
-            cout << "command has been issued" << endl;
-        }
-
-        socklen_t server_address_len = sizeof(server_address);
-        if (recvfrom(client_socket, response, sizeof(response), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
-
-            switch(errno){
-                case CONNECTION_REFUSED:
-                    cout << "receive / connection refused" << endl;
-                    break;
-                case TIMEOUT:
-                    cout << "receive / timeout" << endl;
-                    break;
-                default:
-                    cout << "receive / unknown error : " << errno << endl;
-            }
-            break;
-        }
-        cout << "response from admin server :" << response << endl;
+    if (sendto(client_socket, _command.data(), _command.size(), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+        cout << "send / err :" << errno << endl;
+        return false;
     }
+    else {
+        cout << "command has been issued" << endl;
+    }
+
+    return true;
+}
+
+bool AdminClient::get_response() {
+    socklen_t server_address_len = sizeof(server_address);
+    if (recvfrom(client_socket, _response.data(), _response.size(), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
+
+        switch (errno) {
+            case CONNECTION_REFUSED:
+                cout << "receive / connection refused" << endl;
+                break;
+            case TIMEOUT:
+                cout << "receive / timeout" << endl;
+                break;
+            default:
+                cout << "receive / unknown error : " << errno << endl;
+        }
+        return false;
+    }
+    cout << "response from admin server :" << _response.data() << endl;
+    return true;
+}
+
+int AdminClient::run() {
+    client_socket = init_socket(SOCK_DGRAM);
+
+    bool contin = true;
+
+    while (contin){
+        contin = send_command();
+
+        if (contin)
+            contin = get_response();
+    }
+
     return 0;
 }
