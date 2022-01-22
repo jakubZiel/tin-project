@@ -2,6 +2,8 @@
 #define TIN_21Z_CLIENTINFO_H
 
 #include <sockets.h>
+#include <cstddef>
+#include <string>
 
 class ClientInfo {
 public:
@@ -13,7 +15,6 @@ public:
     { return (addr.sin_addr.s_addr == other.addr.sin_addr.s_addr
               && addr.sin_port == other.addr.sin_port);
     }
-
 
 };
 
