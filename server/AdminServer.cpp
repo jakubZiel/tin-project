@@ -4,6 +4,8 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
+#include <sys/signalfd.h>
+#include <csignal>
 
 #include "AdminServer.h"
 
@@ -16,7 +18,6 @@ AdminServer::AdminServer() {
     server_cmd_address = inet_association(AF_INET, CMD_PORT, INADDR_ANY);
 
     msg_server_address_size = sizeof(msg_server_address);
-
 
     _request = vector<char>(50);
     _response = vector<char>(50);
@@ -39,6 +40,7 @@ int AdminServer::run() {
         cout << "listening to a port : " <<  ADMIN_PORT << endl;
 
     prepare_fdset();
+    prepare_signal_fd();
 
     while (admin_server_active) {
         msg_server_connection_socket = accept(admin_socket, (sockaddr*) &msg_server_address, &msg_server_address_size);
@@ -69,12 +71,13 @@ void AdminServer::handle_msg_server_connection() {
         if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0){
             cout << "select fail, errno : " << errno << endl;
             connection_opened = false;
+        } else if (FD_ISSET(signal_fd, &ready_sockets)) {
+            handle_interrupt();
         } else {
             if (FD_ISSET(msg_server_connection_socket,  &ready_sockets))
                 handle_query();
-
             if (FD_ISSET(cmd_socket, &ready_sockets))
-                handle_command_request();
+                    handle_command_request();
         }
     }
     FD_CLR(msg_server_connection_socket, &server_sockets);
@@ -134,8 +137,38 @@ void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &
     strcpy(response.data(), "HANDLED");
 }
 
+void AdminServer::prepare_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        perror("can't block SIGINT for this process");
+        exit(errno);
+    }
+
+    signal_fd = signalfd(-1, &mask, 0);
+
+    if (signal_fd == -1){
+        perror("can't create signal fd");
+        exit(errno);
+    }
+
+    FD_SET(signal_fd, &server_sockets);
+}
+
+void AdminServer::handle_interrupt() {
+    siginfo_t signal_info;
+    read(signal_fd, &signal_info, sizeof(signal_info));
+    cout << "interrupted by SIGINT" << endl;
+    cout << signal_info.si_errno << endl;
+    connection_opened = false;
+    admin_server_active = false;
+}
+
 int main(){
     AdminServer server;
     server.run();
+    cout << "Closed gracefully...";
     return 0;
 }

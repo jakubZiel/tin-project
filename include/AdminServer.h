@@ -50,7 +50,7 @@ public:
     void handle_query();
     void handle_interrupt();
 
-    void prepare_singal_fd();
+    void prepare_signal_fd();
 
     int run();
 

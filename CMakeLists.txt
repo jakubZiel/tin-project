@@ -18,3 +18,7 @@ add_executable(server-adm
 add_executable(client-adm
         client/AdminClient.cpp
         )
+
+add_executable(
+
+)
