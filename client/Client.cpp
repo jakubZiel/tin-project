@@ -25,29 +25,36 @@ int Client::run() {
     while (true) {
         sleep(1);
 
-        if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+        if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr * ) & server_address,
+                   sizeof(server_address)) <= 0) {
             cout << "Send / Err :" << errno << endl;
             break;
-        }
-        else {
+        } else {
             counter++;
             cout << "Wrote " << counter << endl;
         }
         socklen_t server_address_len = sizeof(server_address);
 
-        if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(client_socket, &rfds);
 
-            switch(errno) {
-                case CONNECTION_REFUSED:
-                    cout << "Receive / Connection refused" << endl;
-                    break;
-                case TIMEOUT:
-                    cout << "Receive / Timeout" << endl;
-                    break;
-                default:
-                    cout << "Receive / Unknown error" << endl;
+        if (select(client_socket + 1, &rfds, NULL, NULL, &tv)) {
+            if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr * ) & server_address,
+                         &server_address_len) <= 0) {
+
+                switch (errno) {
+                    case CONNECTION_REFUSED:
+                        cout << "Receive / Connection refused" << endl;
+                        break;
+                    case TIMEOUT:
+                        cout << "Receive / Timeout" << endl;
+                        break;
+                    default:
+                        cout << "Receive / Unknown error" << endl;
+                }
+                break;
             }
-            break;
         }
         cout << "Message for :" << is_last.data() << endl;
     }
