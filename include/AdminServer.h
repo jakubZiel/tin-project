@@ -48,6 +48,9 @@ public:
 
     void handle_command_request();
     void handle_query();
+    void handle_interrupt();
+
+    void prepare_singal_fd();
 
     int run();
 
