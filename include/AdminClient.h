@@ -26,9 +26,11 @@ private:
 
     void handle_ban_user();
     void handle_max_users_on_channel();
+    void handle_get_users();
 
     void prepare_ban_user_message(std::string &channel, std::string &client_id);
     void prepare_max_users_message(std::string &channel, std::string &max_users);
+    void prepare_get_users_message(std::string &channel);
 
     void handle_batch_session();
     int parse_command(std::string &command);
