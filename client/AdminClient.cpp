@@ -16,25 +16,23 @@ int main() {
 }
 
 AdminClient::AdminClient() {
-    server_address = inet_association(AF_INET, CMD_PORT, inet_addr("127.0.0.1"));
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket == -1) {
+        cout << "ERROR - couldn't create socket" << endl;
+        exit(1);
+    }
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = ADMIN_PORT;
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     _response = vector<char>(50);
 }
 
-int AdminClient::init_socket(int protocol_type) {
-    client_socket = socket(AF_INET, protocol_type, 0);
-}
-
-sockaddr_in AdminClient::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address) {
-    sockaddr_in association{};
-    association.sin_family = in_family;
-    association.sin_port = htons(port);
-    association.sin_addr.s_addr = address;
-
-    return association;
-}
-
 bool AdminClient::send_command(string &data) {
-    if (sendto(client_socket, data.data(), data.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
+    if(connect(client_socket, (sockaddr *) &server_address, sizeof(server_address)) == -1) {
+        cout << "ERROR - couldn't connect with server: " << errno << endl;
+        exit(1);
+    }
+    if (write(client_socket, data.data(), data.size()) == -1) {
         cout << "send / err :" << errno << endl;
         return false;
     } else {
@@ -65,8 +63,6 @@ bool AdminClient::get_response() {
 }
 
 int AdminClient::run() {
-    init_socket(SOCK_DGRAM);
-
     int option = decide_input_method();
     if (option == 1) {
         handle_interactive_session();
@@ -137,7 +133,7 @@ int AdminClient::parse_command(string &command) {
     if (command == "set_max_users") {
         return 2;
     }
-    if (command == "get_users"){
+    if (command == "get_users") {
         return 3;
     }
 

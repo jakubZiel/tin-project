@@ -42,16 +42,7 @@ private:
 
 public:
     AdminClient();
-
-
-
-    int init_socket(int protocol_type);
-
-    sockaddr_in inet_association(sa_family_t in_family, in_port_t port, in_addr_t address);
-
-
     int run();
-
 };
 
 #endif //TIN_21Z_ADMINCLIENT_H
