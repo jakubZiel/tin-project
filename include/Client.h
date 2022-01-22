@@ -15,6 +15,17 @@ private:
     std::vector<char> request_buffer;
     std::vector<char> is_last;
 
+    int decide_input_method();
+
+    void handle_interactive_session();
+    void handle_batch_session();
+
+    void prepare_message(std::string &channel, std::string &message);
+    bool send_data_to_server(std::string &data);
+
+    size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
+
+
 public:
     Client(char * request, char * mode);
 
