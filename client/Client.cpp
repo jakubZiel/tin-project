@@ -7,19 +7,15 @@
 
 using namespace std;
 
-Client::Client(char * request, char * mode) {
+Client::Client() {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
 
     server_address = inet_association(AF_INET, SERVER_PORT, inet_addr("127.0.0.1"));
 
-    request_buffer = vector<char>(50);
-    strcpy(request_buffer.data(), request);
+    request_buffer = vector<char>(200);
 
-    client_mode = vector<char>(50);
-    strcpy(client_mode.data(), mode);
-
-    is_last = vector<char>(50);
+    is_last = vector<char>(200);
 }
 
 int Client::run() {
@@ -131,11 +127,12 @@ void Client::handle_batch_session() {
 
 void Client::prepare_message(string &channel, string &message) {
     string data =
-            "{\"channel\":" + channel + "\"message\":" + message + "\"usedId\":" + to_string(client_socket) + "}";
+            "{\"channel\": \"" + channel + "\", \"message\": \"" + message + "\", \"userId\": \"" + to_string(client_socket) + "\"}";
     send_data_to_server(data);
 }
 
 bool Client::send_data_to_server(string &data) {
+    strcpy(request_buffer.data(), data.c_str());
     if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
         cout << "Send / Err :" << errno << endl;
         return false;
@@ -181,12 +178,6 @@ sockaddr_in Client::inet_association(sa_family_t in_family, in_port_t port, in_a
 }
 
 int main(int argc, char** argv) {
-
-    if (argc < 2) {
-        cout << "Missing client number";
-        return -2;
-    }
-
-    Client client(argv[1], argv[2]);
+    Client client;
     client.run();
 }
