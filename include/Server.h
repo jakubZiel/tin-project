@@ -4,6 +4,7 @@
 
 #include "sockets.h"
 #include "../channel/Message.h"
+#include "rapidjson/document.h"
 #include "ClientInfo.h"
 #include <vector>
 #include <unordered_set>

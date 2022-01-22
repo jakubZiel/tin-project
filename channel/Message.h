@@ -6,14 +6,14 @@
 #define TIN_21Z_MESSAGE_H
 
 #include <string>
+#include "rapidjson/document.h"
 
 class Message {
-    std::string message;
-    std::string client_id;
 public:
-    Message(const char *message);
-
     std::string channel;
+    std::string message;
+    std::string user_id;
+    explicit Message(const char *message);
 };
 
 

@@ -80,7 +80,7 @@ int Server::run() {
             recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr *) &client, &socklen);
             auto clientInfo =  ClientInfo(client);
             clients.insert(clientInfo); // TODO shoudl this be removed?
-            cout << "client ports: ";
+            cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : clients) { cout << el.addr.sin_port << " "; }
             cout << endl;
             cout << "Datagram from client: " << client_id.data() << endl;
@@ -91,7 +91,7 @@ int Server::run() {
             strcpy(admin_query.data(), "SOME_QUERY");
             query_admin(admin_query.data());
 
-            strcpy(response.data(), client_id.data());
+            strcpy(response.data(), message.message.c_str());
             for (auto& cl : channels[message.channel]) {
                 sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
             }
