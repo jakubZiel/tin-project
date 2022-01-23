@@ -21,13 +21,15 @@ Client::Client() {
 int Client::run() {
     client_socket = init_socket(SOCK_DGRAM);
 
-    int option = decide_input_method();
-    if (option == 1) {
+    string option = decide_input_method();
+    if (option == "1") {
         handle_interactive_session();
-    } else if (option == 2) {
+    } else if (option == "2") {
         handle_batch_session();
-    } else if (option == 3){
+    } else if (option == "3"){
         handle_listening_session();
+    } else {
+        cout << "No such option!" << endl;
     }
     return 0;
 }
@@ -35,13 +37,13 @@ int Client::run() {
 //1 - interactive
 //2 - batch
 //3 - listening
-int Client::decide_input_method() {
+string Client::decide_input_method() {
     cout << "1 - interactive mode" << endl;
     cout << "2 - batch" << endl;
     cout << "3 - listening" << endl;
     cout << "Select input method: ";
-    int option;
-    cin >> option;
+    string option;
+    getline(cin, option);
     return option;
 }
 
@@ -50,13 +52,13 @@ void Client::handle_interactive_session() {
     while (true) {
         cout << "\nChannel: ";
         string channel;
-        cin >> channel;
-        cout << "\nMessage: ";
-        string message;
-        cin >> message;
-        if (message == "end") {
+        getline(cin, channel);
+        if (channel == "end") {
             break;
         }
+        cout << "\nMessage: ";
+        string message;
+        getline(cin, message);
         prepare_message(channel, message, false);
     }
 }
@@ -64,7 +66,7 @@ void Client::handle_interactive_session() {
 void Client::handle_batch_session() {
     cout << "File path: ";
     string path;
-    cin >> path;
+    getline(cin, path);
     ifstream message_file;
     message_file.open(path);
 
@@ -81,7 +83,7 @@ void Client::handle_batch_session() {
 void Client::handle_listening_session() {
     cout << "\nChannel: ";
     string channel;
-    cin >> channel;
+    getline(cin, channel);
     string channel_setup = "setup";
     prepare_message(channel, channel_setup, true);
 

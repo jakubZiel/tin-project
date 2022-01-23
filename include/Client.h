@@ -14,7 +14,7 @@ private:
     std::vector<char> request_buffer;
     std::vector<char> is_last;
 
-    int decide_input_method();
+    std::string decide_input_method();
 
     void handle_interactive_session();
     void handle_batch_session();
