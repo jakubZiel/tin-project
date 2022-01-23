@@ -29,3 +29,7 @@ void ChannelManager::set_max_size(const std::string& channel, size_t size) {
 void ChannelManager::ban_from_channel(const std::string& channel, const std::string& client) {
     channels[channel].banned[client] = ClientInfo();
 }
+
+std::string ChannelManager::get_clients(std::string channel) {
+    return "clients : 1, 2, 3, 4, 5";
+}

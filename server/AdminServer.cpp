@@ -109,7 +109,7 @@ int AdminServer::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
     int n_socket = socket(AF_INET, protocol_type, 0);
 
     if (bind(n_socket, (sockaddr *) &address_to_bind, sizeof(address_to_bind))) {
-        cout << "failed to bind command socket";
+        cout << "failed to bind command socket" << endl;
         return -1;
     } else
         cout << "command socket is bound" << endl;
@@ -134,6 +134,26 @@ void AdminServer::find_record(std::vector<char> &request, std::vector<char> &res
 }
 
 void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &response) {
+    string channel = "channel5";
+    string client = "client1";
+    int size = 15;
+
+    switch (parse_command()) {
+        case BAN:
+            channelManager.ban_from_channel(channel, client);
+        case USERS:
+            channelManager.get_clients(channel);
+            break;
+        case SET_MAX_SIZE:
+            channelManager.set_max_size(channel, size);
+            break;
+        case SET_PRIVACY:
+            channelManager.set_privacy(channel, true);
+            break;
+        default:
+            perror("bad command\n");
+    }
+
     cout << "command handled : " << request.data() << endl;
     strcpy(response.data(), "HANDLED");
 }
@@ -161,7 +181,7 @@ void AdminServer::prepare_signal_fd() {
 void AdminServer::handle_interrupt() {
     siginfo_t signal_info;
     read(signal_fd, &signal_info, sizeof(signal_info));
-    cout << "interrupted by SIGINT" << endl;
+    cout << endl << "Interrupted by SIGINT" << endl;
     cout << signal_info.si_errno << endl;
     connection_opened = false;
     admin_server_active = false;
@@ -175,8 +195,8 @@ void AdminServer::make_non_blocking(int fd) {
     }
 }
 
-void AdminServer::parse_command() {
-
+int AdminServer::parse_command() {
+    return BAN;
 }
 
 void AdminServer::parse_query() {
@@ -186,6 +206,6 @@ void AdminServer::parse_query() {
 int main(){
     AdminServer server;
     server.run();
-    cout << "Closed gracefully...";
+    cout << "\nClosed gracefully...";
     return 0;
 }

@@ -34,5 +34,7 @@ public:
     void set_privacy(const std::string& channel, bool is_private);
     void set_max_size(const std::string& channel, size_t size);
     void ban_from_channel(const std::string& channel, const std::string& client);
+
+    std::string get_clients(std::string channel);
 };
 #endif
