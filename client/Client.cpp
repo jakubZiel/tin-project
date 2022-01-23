@@ -27,9 +27,9 @@ int Client::run() {
         handle_interactive_session();
     } else if (option == 2) {
         handle_batch_session();
-    } //else {
-        //handle_listening_session();
-    //}
+    } else if (option == 3){
+        handle_listening_session();
+    }
     return 0;
 
 //    int counter = 0;
@@ -125,9 +125,36 @@ void Client::handle_batch_session() {
     message_file.close();
 }
 
+void Client::handle_listening_session() {
+    while (true) {
+        socklen_t server_address_len = sizeof(server_address);
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(client_socket, &rfds);
+
+        if (select(client_socket + 1, &rfds, NULL, NULL, &tv)) {
+            if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
+                         &server_address_len) <= 0) {
+                switch (errno) {
+                    case CONNECTION_REFUSED:
+                        cout << "Receive / Connection refused" << endl;
+                        break;
+                    case TIMEOUT:
+                        cout << "Receive / Timeout" << endl;
+                        break;
+                    default:
+                        cout << "Receive / Unknown error" << endl;
+                        break;
+                }
+            }
+            cout << "Message for :" << is_last.data() << endl;
+        }
+    }
+}
+
 void Client::prepare_message(string &channel, string &message) {
     string data =
-            "{\"channel\": \"" + channel + "\", \"message\": \"" + message + "\", \"userId\": \"" + to_string(client_socket) + "\"}";
+            "\"{\\\"channel\\\": \\\"" + channel + "\\\", \\\"message\\\": \\\"" + message + "\\\", \\\"userId\\\": \\\"" + to_string(client_socket) + "\\\"}\"";
     send_data_to_server(data);
 }
 

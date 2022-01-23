@@ -18,6 +18,7 @@ private:
 
     void handle_interactive_session();
     void handle_batch_session();
+    void handle_listening_session();
 
     void prepare_message(std::string &channel, std::string &message);
     bool send_data_to_server(std::string &data);
