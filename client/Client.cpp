@@ -104,7 +104,7 @@ void Client::handle_interactive_session() {
         if (message == "end") {
             break;
         }
-        prepare_message(channel, message);
+        prepare_message(channel, message, false);
     }
 }
 
@@ -119,13 +119,19 @@ void Client::handle_batch_session() {
     while (getline(message_file, line)) {
         vector<string> args;
         split(line, args, ' ');
-        prepare_message(args[0], args[1]);
+        prepare_message(args[0], args[1], false);
     }
 
     message_file.close();
 }
 
 void Client::handle_listening_session() {
+    cout << "\nChannel: ";
+    string channel;
+    cin >> channel;
+    string channel_setup = "setup";
+    prepare_message(channel, channel_setup, true);
+
     while (true) {
         socklen_t server_address_len = sizeof(server_address);
         fd_set rfds;
@@ -152,9 +158,9 @@ void Client::handle_listening_session() {
     }
 }
 
-void Client::prepare_message(string &channel, string &message) {
+void Client::prepare_message(string &channel, string &message, bool is_listener) {
     string data =
-            "{\"channel\":\"" + channel + "\",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
+            "{\"channel\":\"" + channel + "\",\"listener\":\"" + to_string(is_listener) + "\",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
     send_data_to_server(data);
 }
 

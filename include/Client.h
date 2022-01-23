@@ -20,7 +20,7 @@ private:
     void handle_batch_session();
     void handle_listening_session();
 
-    void prepare_message(std::string &channel, std::string &message);
+    void prepare_message(std::string &channel, std::string &message, bool is_listener);
     bool send_data_to_server(std::string &data);
 
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
