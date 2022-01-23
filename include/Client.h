@@ -14,8 +14,23 @@ private:
     std::vector<char> request_buffer;
     std::vector<char> is_last;
 
+    int decide_input_method();
+
+    void handle_interactive_session();
+    void handle_batch_session();
+    void handle_listening_session();
+
+    void prepare_message(std::string &channel, std::string &message, bool is_listener);
+    bool send_data_to_server(std::string &data);
+
+    size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
+    inline const char * const bool_to_string(bool b) {
+        return b ? "true" : "false";
+    }
+
+
 public:
-    Client(char * request);
+    Client();
 
     int init_socket(int protocol_type);
     sockaddr_in inet_association(sa_family_t in_family, in_port_t port, in_addr_t address);

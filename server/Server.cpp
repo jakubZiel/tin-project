@@ -13,10 +13,10 @@ Server::Server() {
     server_address = associate_inet(AF_INET, SERVER_PORT, INADDR_ANY);
     admin_server_address = associate_inet(AF_INET, ADMIN_PORT, inet_addr("127.0.0.1"));
 
-    client_id = vector<char>(50);
-    response = vector<char>(50);
-    admin_query = vector<char>(50);
-    admin_response = vector<char>(50);
+    client_message = vector<char>(2000); // TODO put size in a constant
+    response = vector<char>(2000);
+    admin_query = vector<char>(100);
+    admin_response = vector<char>(100);
 
     clients_datagram_count = map<string, int>(); // TODO is it necessary?
     server_active = true;
@@ -74,18 +74,35 @@ int Server::run() {
     while (server_active) {
         //TODO add signalfd , add select
         ready_sockets = sockets;
-        if (select(FD_SETSIZE, nullptr, &ready_sockets, nullptr, nullptr) < 0) {
+        if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
             cout << "Select fail, errno: " << errno << endl;
         } else if (FD_ISSET(server_socket, &ready_sockets)) {
-            recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr *) &client, &socklen);
-            cout << "Datagram from client: " << client_id.data() << endl;
-            clients_datagram_count[client_id.data()]++;
+            recvfrom(server_socket, client_message.data(), client_message.size(), 0, (sockaddr *) &client, &socklen);
+            auto clientInfo =  ClientInfo(client);
+
+            cout << "Datagram from client: " << client_message.data() << endl;
+            Message message;
+            try {
+                message = Message(client_message.data());
+            } catch (std::invalid_argument &e) {
+                cerr << e.what() << endl;
+                continue;
+            }
+            channels[message.channel].insert(clientInfo);
+            cout << "client ports: "; // TODO debug, remove in the future
+            for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
+            cout << endl;
+            clients_datagram_count[client_message.data()]++;
 
             strcpy(admin_query.data(), "SOME_QUERY");
             query_admin(admin_query.data());
 
-            strcpy(response.data(), client_id.data());
-            sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &client, sizeof(client));
+            if (!message.is_listener) {
+                strcpy(response.data(), message.message.c_str());
+                for (auto& cl : channels[message.channel]) {
+                    sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
+                }
+            }
         }
     }
     FD_CLR(server_socket, &sockets);
