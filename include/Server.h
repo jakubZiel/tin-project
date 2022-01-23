@@ -39,6 +39,8 @@ private:
 
     void prepare_fdset();
 
+    const char *create_admin_query(const Message& message);
+
 };
 
 #endif //TIN_21Z_SERVER_H

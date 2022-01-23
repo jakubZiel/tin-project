@@ -5,8 +5,11 @@
 
 #include "sockets.h"
 #include "Server.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 using namespace std;
+using namespace rapidjson;
 
 Server::Server() {
 
@@ -94,7 +97,7 @@ int Server::run() {
             cout << endl;
             clients_datagram_count[client_message.data()]++;
 
-            strcpy(admin_query.data(), "SOME_QUERY");
+            strcpy(admin_query.data(), create_admin_query(message));
             query_admin(admin_query.data());
 
             if (!message.is_listener) {
@@ -117,6 +120,28 @@ int Server::run() {
 void Server::prepare_fdset() {
     FD_ZERO(&sockets);
     FD_SET(server_socket, &sockets);
+}
+
+const char *Server::create_admin_query(const Message& message) {
+    Document query_json;
+    query_json.SetObject();
+    rapidjson::Value channel;
+    channel = StringRef(message.channel.c_str());
+    rapidjson::Value userId;
+    userId = StringRef(message.user_id.c_str());
+    rapidjson::Value listener(message.is_listener);
+
+    query_json.AddMember("channel", channel, query_json.GetAllocator());
+    query_json.AddMember("listener", listener, query_json.GetAllocator());
+    query_json.AddMember("userId", userId, query_json.GetAllocator());
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    query_json.Accept(writer);
+    // TODO remove, debug purposes
+    cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
+    cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
+    cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
+    return buffer.GetString();
 }
 
 int main() {
