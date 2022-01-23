@@ -97,9 +97,11 @@ int Server::run() {
             strcpy(admin_query.data(), "SOME_QUERY");
             query_admin(admin_query.data());
 
-            strcpy(response.data(), message.message.c_str());
-            for (auto& cl : channels[message.channel]) {
-                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
+            if (!message.is_listener) {
+                strcpy(response.data(), message.message.c_str());
+                for (auto& cl : channels[message.channel]) {
+                    sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
+                }
             }
         }
     }
