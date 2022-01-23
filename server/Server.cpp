@@ -99,14 +99,21 @@ int Server::run() {
                 cerr << e.what() << endl;
                 continue;
             }
+
+            strcpy(admin_query.data(), create_admin_query(message));
+            query_admin(admin_query.data());
+
+            Document admin_response_json;
+            admin_response_json.Parse(admin_response.data());
+            if (!admin_response_json["authorized"].GetBool()) {
+                cerr << "User " << message.user_id << " is banned from channel " << message.channel << "." << endl;
+                continue;
+            }
             channels[message.channel].insert(clientInfo);
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
             cout << endl;
             clients_datagram_count[client_message.data()]++;
-
-            strcpy(admin_query.data(), create_admin_query(message));
-            query_admin(admin_query.data());
 
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
@@ -114,6 +121,7 @@ int Server::run() {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
             }
+
         }
     }
     FD_CLR(server_socket, &sockets);
