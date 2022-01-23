@@ -1,4 +1,8 @@
 /cmake-build-debug/
 /CMakeFiles/
 /.idea/
+<<<<<<< HEAD
 *.iml
+=======
+*.iml
+>>>>>>> server-refactor-imp

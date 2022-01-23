@@ -18,8 +18,8 @@ Server::Server() {
 
     client_message = vector<char>(2000); // TODO put size in a constant
     response = vector<char>(2000);
-    admin_query = vector<char>(100);
-    admin_response = vector<char>(100);
+    admin_query = vector<char>(1000);
+    admin_response = vector<char>(1000);
 
     clients_datagram_count = map<string, int>(); // TODO is it necessary?
     server_active = true;

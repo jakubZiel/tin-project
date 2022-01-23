@@ -8,6 +8,13 @@
 #include "sockets.h"
 #include <sys/signalfd.h>
 #include <vector>
+#include "ChannelManager.h"
+
+#define BAN 1
+#define USERS 2
+#define SET_MAX_SIZE 3
+#define SET_PRIVACY 4
+#define BAD_COMMAND 100
 
 class AdminServer {
 private:
@@ -35,6 +42,8 @@ private:
     bool admin_server_active;
     bool connection_opened;
 
+    ChannelManager channelManager;
+
 public:
     AdminServer();
 
@@ -48,8 +57,14 @@ public:
 
     void handle_command_request();
     void handle_query();
+    void handle_interrupt();
+
+    void prepare_signal_fd();
+    void make_non_blocking(int fd);
+
+    int parse_command();
+    void parse_query();
 
     int run();
-
 };
 #endif //TIN_21Z_ADMINSERVER_H
