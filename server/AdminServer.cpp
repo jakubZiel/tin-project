@@ -6,6 +6,7 @@
 #include <cstring>
 #include <sys/signalfd.h>
 #include <csignal>
+#include <fcntl.h>
 
 #include "AdminServer.h"
 
@@ -29,7 +30,6 @@ AdminServer::AdminServer() {
 }
 
 int AdminServer::run() {
-
     admin_socket = bind_socket(SOCK_STREAM, admin_server_address);
     cmd_socket = bind_socket(SOCK_DGRAM, server_cmd_address);
 
@@ -44,6 +44,7 @@ int AdminServer::run() {
 
     while (admin_server_active) {
         msg_server_connection_socket = accept(admin_socket, (sockaddr*) &msg_server_address, &msg_server_address_size);
+        make_non_blocking(msg_server_connection_socket);
 
         if (msg_server_connection_socket != -1) {
             connection_opened = true;
@@ -164,6 +165,14 @@ void AdminServer::handle_interrupt() {
     cout << signal_info.si_errno << endl;
     connection_opened = false;
     admin_server_active = false;
+}
+
+void AdminServer::make_non_blocking(int fd) {
+    int status = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    if (status == -1){
+        perror("error in fcntl");
+        exit(errno);
+    }
 }
 
 int main(){

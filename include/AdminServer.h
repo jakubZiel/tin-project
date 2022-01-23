@@ -8,6 +8,7 @@
 #include "sockets.h"
 #include <sys/signalfd.h>
 #include <vector>
+#include "ChannelManager.h"
 
 class AdminServer {
 private:
@@ -35,6 +36,8 @@ private:
     bool admin_server_active;
     bool connection_opened;
 
+    ChannelManager channelManager;
+
 public:
     AdminServer();
 
@@ -51,6 +54,8 @@ public:
     void handle_interrupt();
 
     void prepare_signal_fd();
+    void make_non_blocking(int fd);
+
 
     int run();
 
