@@ -19,4 +19,8 @@ add_executable(server-adm
 
 add_executable(client-adm
         client/AdminClient.cpp
-        )
+        server/admin-server/ChannelManager.cpp)
+
+add_executable(json
+        main.cpp
+)
