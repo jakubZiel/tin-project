@@ -2,10 +2,14 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
+#include <rapidjson/document.h>
 
 #include "Client.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 using namespace std;
+using namespace rapidjson;
 
 Client::Client() {
     tv.tv_sec = 3;
@@ -114,19 +118,37 @@ void Client::handle_listening_session() {
 }
 
 void Client::prepare_message(string &channel, string &message, bool is_listener) {
-    string data =
-            "{\"channel\":\"" + channel + "\",\"listener\":" + bool_to_string(is_listener)
-            + ",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
-    send_data_to_server(data);
+    Document result;
+    result.SetObject();
+    rapidjson::Value channel_json;
+    channel_json = StringRef(channel.c_str());
+    rapidjson::Value listener_json;
+    listener_json = is_listener;
+    rapidjson::Value message_json;
+    message_json = StringRef(message.c_str());
+    rapidjson::Value id_json;
+    id_json = StringRef(to_string(client_socket).c_str());
+
+    result.AddMember("channel", channel_json, result.GetAllocator());
+    result.AddMember("listener", listener_json, result.GetAllocator());
+    result.AddMember("message", message_json, result.GetAllocator());
+    result.AddMember("userId", id_json, result.GetAllocator());
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    result.Accept(writer);
+
+    send_data_to_server(buffer.GetString());
 }
 
-bool Client::send_data_to_server(string &data) {
-    strcpy(request_buffer.data(), data.c_str());
+bool Client::send_data_to_server(const char * data) {
+    strcpy(request_buffer.data(), data);
     if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
         cout << "Send / Err :" << errno << endl;
         return false;
     } else {
         cout << "Wrote " << data << endl;
+        return true;
     }
 }
 

@@ -21,12 +21,9 @@ private:
     void handle_listening_session();
 
     void prepare_message(std::string &channel, std::string &message, bool is_listener);
-    bool send_data_to_server(std::string &data);
+    bool send_data_to_server(const char * data);
 
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
-    inline const char * const bool_to_string(bool b) {
-        return b ? "true" : "false";
-    }
 
 
 public:
