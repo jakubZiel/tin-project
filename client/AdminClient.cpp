@@ -84,6 +84,12 @@ int AdminClient::decide_input_method() {
     cout << "Select input method: ";
     int option;
     cin >> option;
+
+    while (option != 1 && option != 2) {
+        cout << "Wrong command - try again\n";
+        cin >> option;
+    }
+
     return option;
 }
 
