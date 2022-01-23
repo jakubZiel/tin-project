@@ -16,28 +16,27 @@ int main() {
 }
 
 AdminClient::AdminClient() {
-    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    client_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (client_socket == -1) {
         cout << "ERROR - couldn't create socket" << endl;
         exit(1);
     }
     server_address.sin_family = AF_INET;
-    server_address.sin_port = ADMIN_PORT;
+    server_address.sin_port = htons(CMD_PORT);
     server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     _response = vector<char>(50);
 }
 
 bool AdminClient::send_command(string &data) {
-    if(connect(client_socket, (sockaddr *) &server_address, sizeof(server_address)) == -1) {
-        cout << "ERROR - couldn't connect with server: " << errno << endl;
-        exit(1);
-    }
-    if (write(client_socket, data.data(), data.size()) == -1) {
+    cout <<  "Sending...\n";
+    if (sendto(client_socket, data.c_str(), sizeof (data.c_str()), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
         cout << "send / err :" << errno << endl;
         return false;
-    } else {
+    }
+    else {
         cout << "command has been issued" << endl;
     }
+
     return true;
 }
 
