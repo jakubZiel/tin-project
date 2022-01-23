@@ -3,47 +3,33 @@
 //
 #include <iostream>
 #include <unistd.h>
+#include <fstream>
 
 #include "AdminClient.h"
 
 using namespace std;
 
 int main() {
-    //cout << SO_SNDBUF << endl;
-
     AdminClient adminClient;
     adminClient.run();
     return 0;
 }
 
 AdminClient::AdminClient() {
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-
-    server_address = inet_association(AF_INET, CMD_PORT, inet_addr("127.0.0.1"));
-
-    _command = vector<char>(50);
+    client_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (client_socket == -1) {
+        cout << "ERROR - couldn't create socket" << endl;
+        exit(1);
+    }
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(CMD_PORT);
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     _response = vector<char>(50);
 }
 
-int AdminClient::init_socket(int protocol_type){
-    client_socket = socket(AF_INET, protocol_type, 0);
-}
-
-sockaddr_in AdminClient::inet_association(sa_family_t in_family, in_port_t port, in_addr_t address){
-    sockaddr_in association{};
-    association.sin_family = in_family;
-    association.sin_port = htons(port);
-    association.sin_addr.s_addr = address;
-
-    return association;
-}
-
-bool AdminClient::send_command() {
-    cout <<  "Command to run on server\n";
-    cin >> _command.data();
-
-    if (sendto(client_socket, _command.data(), _command.size(), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+bool AdminClient::send_command(string &data) {
+    cout <<  "Sending...\n";
+    if (sendto(client_socket, data.c_str(), sizeof (data.c_str()), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
         cout << "send / err :" << errno << endl;
         return false;
     }
@@ -56,7 +42,8 @@ bool AdminClient::send_command() {
 
 bool AdminClient::get_response() {
     socklen_t server_address_len = sizeof(server_address);
-    if (recvfrom(client_socket, _response.data(), _response.size(), 0, (sockaddr*)&server_address, &server_address_len) <= 0 ) {
+    if (recvfrom(client_socket, _response.data(), _response.size(), 0, (sockaddr *) &server_address,
+                 &server_address_len) <= 0) {
 
         switch (errno) {
             case CONNECTION_REFUSED:
@@ -75,16 +62,174 @@ bool AdminClient::get_response() {
 }
 
 int AdminClient::run() {
-    init_socket(SOCK_DGRAM);
+    int option = decide_input_method();
+    if (option == 1) {
+        handle_interactive_session();
+    } else {
+        handle_batch_session();
+    }
+    return 0;
+}
 
-    bool contin = true;
+void AdminClient::send_data_to_server(string &data) {
+    cout << "Data for server: " + data << endl;
+    send_command(data);
+}
 
-    while (contin){
-        contin = send_command();
+//1 - interactive
+//2 - batch
+int AdminClient::decide_input_method() {
+    cout << "1 - interactive mode" << endl;
+    cout << "2 - batch" << endl;
+    cout << "Select input method: ";
+    int option;
+    cin >> option;
+    return option;
+}
 
-        if (contin)
-            contin = get_response();
+void AdminClient::handle_interactive_session() {
+    string command;
+    while (true) {
+        cout << "\nCommand: ";
+        cin >> command;
+        if (command == "end") {
+            break;
+        }
+        int command_code = parse_command(command);
+        if (command_code == -1) {
+            cout << "Wrong command - try again";
+            continue;
+        }
+        handle_command_arguments_interactive(command_code);
+    }
+}
+
+void AdminClient::handle_batch_session() {
+    cout << "path: ";
+    string path;
+    cin >> path;
+    ifstream file_with_commands;
+    file_with_commands.open(path);
+
+    string line;
+    while (getline(file_with_commands, line)) {
+        vector<string> args;
+        split(line, args, ' ');
+        int command_code = parse_command(args[0]);
+        if (command_code == -1) {
+            cout << "Wrong command - try again";
+            continue;
+        }
+        handle_command_arguments_batch(command_code, args);
+    }
+    file_with_commands.close();
+}
+
+int AdminClient::parse_command(string &command) {
+    if (command == "ban") {
+        return 1;
+    }
+    if (command == "set_max_users") {
+        return 2;
+    }
+    if (command == "get_users") {
+        return 3;
     }
 
-    return 0;
+    //error code
+    return -1;
+}
+
+size_t AdminClient::split(const std::string &txt, std::vector<std::string> &strs, char ch) {
+    size_t pos = txt.find(ch);
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while (pos != std::string::npos) {
+        strs.push_back(txt.substr(initialPos, pos - initialPos));
+        initialPos = pos + 1;
+
+        pos = txt.find(ch, initialPos);
+    }
+
+    // Add the last one
+    strs.push_back(txt.substr(initialPos, std::min(pos, txt.size()) - initialPos + 1));
+
+    return strs.size();
+}
+
+void AdminClient::handle_command_arguments_interactive(int command_code) {
+    switch (command_code) {
+        case 1:
+            handle_ban_user();
+            break;
+        case 2:
+            handle_max_users_on_channel();
+            break;
+        case 3:
+            handle_get_users();
+            break;
+    }
+}
+
+void AdminClient::handle_ban_user() {
+    cout << "\nchannel: ";
+    string channel;
+    cin >> channel;
+    cout << "\nclient_id: ";
+    string client_id;
+    cin >> client_id;
+    prepare_ban_user_message(channel, client_id);
+}
+
+void AdminClient::prepare_ban_user_message(string &channel, string &client_id) {
+    string message =
+            "{command:ban,channel:" + channel + ",client_id:" + client_id + "}";
+    send_data_to_server(message);
+}
+
+void AdminClient::handle_max_users_on_channel() {
+    cout << "\nchannel: ";
+    string channel;
+    cin >> channel;
+    cout << "\nmax users: ";
+    string max_users;
+    cin >> max_users;
+    prepare_max_users_message(channel, max_users);
+}
+
+void AdminClient::prepare_max_users_message(string &channel, string &max_users) {
+    string message =
+            "{command:max_users,channel:" + channel + ",client_id:" + max_users + "}";
+    send_data_to_server(message);
+}
+
+void AdminClient::handle_command_arguments_batch(int command_code, std::vector<string> &args) {
+    switch (command_code) {
+        case 1:
+            prepare_ban_user_message(args[1], args[2]);
+            break;
+        case 2:
+            prepare_max_users_message(args[1], args[2]);
+            break;
+        case 3:
+            prepare_get_users_message(args[1]);
+            break;
+    }
+}
+
+void AdminClient::handle_get_users() {
+    cout << "\nchannel: ";
+    string channel;
+    cin >> channel;
+
+    prepare_get_users_message(channel);
+}
+
+void AdminClient::prepare_get_users_message(string &channel) {
+    string message =
+            "{command:get_users,channel:" + channel + "}";
+    send_data_to_server(message);
+    get_response();
 }
