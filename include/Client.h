@@ -13,6 +13,8 @@ private:
 
     std::vector<char> request_buffer;
     std::vector<char> is_last;
+    int signal_fd;
+    bool client_active;
 
     std::string decide_input_method();
 
@@ -25,6 +27,8 @@ private:
 
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
 
+    void handle_interrupt();
+    void prepare_signal_fd();
 
 public:
     Client();

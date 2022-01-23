@@ -2,6 +2,9 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
+#include <sys/signalfd.h>
+#include <csignal>
+#include <cstdlib>
 #include <rapidjson/document.h>
 
 #include "Client.h"
@@ -18,12 +21,14 @@ Client::Client() {
     server_address = inet_association(AF_INET, SERVER_PORT, inet_addr("127.0.0.1"));
 
     request_buffer = vector<char>(200);
-
     is_last = vector<char>(200);
 }
 
 int Client::run() {
     client_socket = init_socket(SOCK_DGRAM);
+    client_active = true;
+
+    prepare_signal_fd();
 
     string option = decide_input_method();
     if (option == "1") {
@@ -91,28 +96,35 @@ void Client::handle_listening_session() {
     string channel_setup = "setup";
     prepare_message(channel, channel_setup, true);
 
-    while (true) {
+    while (client_active) {
         socklen_t server_address_len = sizeof(server_address);
         fd_set rfds;
         FD_ZERO(&rfds);
         FD_SET(client_socket, &rfds);
+        FD_SET(signal_fd, &rfds);
 
-        if (select(client_socket + 1, &rfds, NULL, NULL, &tv)) {
-            if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
-                         &server_address_len) <= 0) {
-                switch (errno) {
-                    case CONNECTION_REFUSED:
-                        cout << "Receive / Connection refused" << endl;
-                        break;
-                    case TIMEOUT:
-                        cout << "Receive / Timeout" << endl;
-                        break;
-                    default:
-                        cout << "Receive / Unknown error" << endl;
-                        break;
+        if (select(max(client_socket, signal_fd) + 1, &rfds, NULL, NULL, &tv)) {
+            if (FD_ISSET(signal_fd, &rfds))
+                handle_interrupt();
+
+            if (FD_ISSET(client_socket, &rfds)){
+                if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
+                             &server_address_len) <= 0) {
+                    switch (errno) {
+                        case CONNECTION_REFUSED:
+                            cout << "Receive / Connection refused" << endl;
+                            break;
+                        case TIMEOUT:
+                            cout << "Receive / Timeout" << endl;
+                            break;
+                        default:
+                            cout << "Receive / Unknown error" << endl;
+                            break;
+                    }
+                } else {
+                    cout << "Received message:" << is_last.data() << endl;
                 }
             }
-            cout << "Received message:" << is_last.data() << endl;
         }
     }
 }
@@ -188,7 +200,37 @@ sockaddr_in Client::inet_association(sa_family_t in_family, in_port_t port, in_a
     return association;
 }
 
+void Client::handle_interrupt() {
+    siginfo_t signal_info;
+    read(signal_fd, &signal_info, sizeof(signal_info));
+    cout << endl << "Interrupted by SIGINT" << endl;
+    cout << signal_info.si_errno << endl;
+
+    client_active = false;
+}
+
+void Client::prepare_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        perror("can't block SIGINT for this process");
+        exit(errno);
+    }
+
+    signal_fd = signalfd(-1, &mask, 0);
+
+    if (signal_fd == -1){
+        perror("can't create signal fd");
+        exit(errno);
+    }
+}
+
+
 int main(int argc, char** argv) {
     Client client;
     client.run();
+    cout << "\nClosed gracefully...";
+    return 0;
 }
