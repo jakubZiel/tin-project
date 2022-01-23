@@ -19,7 +19,6 @@ Client::Client() {
 }
 
 int Client::run() {
-
     client_socket = init_socket(SOCK_DGRAM);
 
     int option = decide_input_method();
@@ -31,53 +30,7 @@ int Client::run() {
         handle_listening_session();
     }
     return 0;
-
-//    int counter = 0;
-//    while (true) {
-//        sleep(1);
-//
-//        if (strcmp(client_mode.data(), "1") == 0) {
-//            if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address,
-//                       sizeof(server_address)) <= 0) {
-//                cout << "Send / Err :" << errno << endl;
-//                break;
-//            } else {
-//                counter++;
-//                cout << "Wrote " << counter << endl;
-//            }
-//        }
-//
-//        if (strcmp(client_mode.data(), "2") == 0) {
-//            socklen_t server_address_len = sizeof(server_address);
-//            fd_set rfds;
-//            FD_ZERO(&rfds);
-//            FD_SET(client_socket, &rfds);
-//
-//            if (select(client_socket+1, &rfds, NULL, NULL, &tv)) {
-//                if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
-//                             &server_address_len) <= 0) {
-//
-//                    switch (errno) {
-//                        case CONNECTION_REFUSED:
-//                            cout << "Receive / Connection refused" << endl;
-//                            break;
-//                        case TIMEOUT:
-//                            cout << "Receive / Timeout" << endl;
-//                            break;
-//                        default:
-//                            cout << "Receive / Unknown error" << endl;
-//                    }
-//                    break;
-//                }
-//                cout << "Message for :" << is_last.data() << endl;
-//            }
-//        }
-//    }
-//
-//    cout << "Client :" << request_buffer.data() << " Sent :" << counter;
-//    return 0;
 }
-
 
 //1 - interactive
 //2 - batch
@@ -104,7 +57,7 @@ void Client::handle_interactive_session() {
         if (message == "end") {
             break;
         }
-        prepare_message(channel, message);
+        prepare_message(channel, message, false);
     }
 }
 
@@ -119,13 +72,19 @@ void Client::handle_batch_session() {
     while (getline(message_file, line)) {
         vector<string> args;
         split(line, args, ' ');
-        prepare_message(args[0], args[1]);
+        prepare_message(args[0], args[1], false);
     }
 
     message_file.close();
 }
 
 void Client::handle_listening_session() {
+    cout << "\nChannel: ";
+    string channel;
+    cin >> channel;
+    string channel_setup = "setup";
+    prepare_message(channel, channel_setup, true);
+
     while (true) {
         socklen_t server_address_len = sizeof(server_address);
         fd_set rfds;
@@ -147,14 +106,15 @@ void Client::handle_listening_session() {
                         break;
                 }
             }
-            cout << "Message for :" << is_last.data() << endl;
+            cout << "Received message:" << is_last.data() << endl;
         }
     }
 }
 
-void Client::prepare_message(string &channel, string &message) {
+void Client::prepare_message(string &channel, string &message, bool is_listener) {
     string data =
-            "\"{\\\"channel\\\": \\\"" + channel + "\\\", \\\"message\\\": \\\"" + message + "\\\", \\\"userId\\\": \\\"" + to_string(client_socket) + "\\\"}\"";
+            "{\"channel\":\"" + channel + "\",\"listener\":" + bool_to_string(is_listener)
+            + ",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
     send_data_to_server(data);
 }
 
