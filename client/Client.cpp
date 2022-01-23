@@ -106,8 +106,7 @@ void Client::handle_listening_session() {
         if (select(max(client_socket, signal_fd) + 1, &rfds, NULL, NULL, &tv)) {
             if (FD_ISSET(signal_fd, &rfds))
                 handle_interrupt();
-
-            if (FD_ISSET(client_socket, &rfds)){
+            else if (FD_ISSET(client_socket, &rfds)){
                 if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
                              &server_address_len) <= 0) {
                     switch (errno) {
