@@ -4,6 +4,9 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
+#include <sys/signalfd.h>
+#include <csignal>
+#include <fcntl.h>
 
 #include "AdminServer.h"
 
@@ -17,7 +20,6 @@ AdminServer::AdminServer() {
 
     msg_server_address_size = sizeof(msg_server_address);
 
-
     _request = vector<char>(50);
     _response = vector<char>(50);
     _command = vector<char>(50);
@@ -28,7 +30,6 @@ AdminServer::AdminServer() {
 }
 
 int AdminServer::run() {
-
     admin_socket = bind_socket(SOCK_STREAM, admin_server_address);
     cmd_socket = bind_socket(SOCK_DGRAM, server_cmd_address);
 
@@ -39,9 +40,11 @@ int AdminServer::run() {
         cout << "listening to a port : " <<  ADMIN_PORT << endl;
 
     prepare_fdset();
+    prepare_signal_fd();
 
     while (admin_server_active) {
         msg_server_connection_socket = accept(admin_socket, (sockaddr*) &msg_server_address, &msg_server_address_size);
+        make_non_blocking(msg_server_connection_socket);
 
         if (msg_server_connection_socket != -1) {
             connection_opened = true;
@@ -69,12 +72,13 @@ void AdminServer::handle_msg_server_connection() {
         if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0){
             cout << "select fail, errno : " << errno << endl;
             connection_opened = false;
+        } else if (FD_ISSET(signal_fd, &ready_sockets)) {
+            handle_interrupt();
         } else {
             if (FD_ISSET(msg_server_connection_socket,  &ready_sockets))
                 handle_query();
-
             if (FD_ISSET(cmd_socket, &ready_sockets))
-                handle_command_request();
+                    handle_command_request();
         }
     }
     FD_CLR(msg_server_connection_socket, &server_sockets);
@@ -105,7 +109,7 @@ int AdminServer::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
     int n_socket = socket(AF_INET, protocol_type, 0);
 
     if (bind(n_socket, (sockaddr *) &address_to_bind, sizeof(address_to_bind))) {
-        cout << "failed to bind command socket";
+        cout << "failed to bind command socket" << endl;
         return -1;
     } else
         cout << "command socket is bound" << endl;
@@ -130,12 +134,78 @@ void AdminServer::find_record(std::vector<char> &request, std::vector<char> &res
 }
 
 void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &response) {
+    string channel = "channel5";
+    string client = "client1";
+    int size = 15;
+
+    switch (parse_command()) {
+        case BAN:
+            channelManager.ban_from_channel(channel, client);
+        case USERS:
+            channelManager.get_clients(channel);
+            break;
+        case SET_MAX_SIZE:
+            channelManager.set_max_size(channel, size);
+            break;
+        case SET_PRIVACY:
+            channelManager.set_privacy(channel, true);
+            break;
+        default:
+            perror("bad command\n");
+    }
+
     cout << "command handled : " << request.data() << endl;
     strcpy(response.data(), "HANDLED");
+}
+
+void AdminServer::prepare_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        perror("can't block SIGINT for this process");
+        exit(errno);
+    }
+
+    signal_fd = signalfd(-1, &mask, 0);
+
+    if (signal_fd == -1){
+        perror("can't create signal fd");
+        exit(errno);
+    }
+
+    FD_SET(signal_fd, &server_sockets);
+}
+
+void AdminServer::handle_interrupt() {
+    siginfo_t signal_info;
+    read(signal_fd, &signal_info, sizeof(signal_info));
+    cout << endl << "Interrupted by SIGINT" << endl;
+    cout << signal_info.si_errno << endl;
+    connection_opened = false;
+    admin_server_active = false;
+}
+
+void AdminServer::make_non_blocking(int fd) {
+    int status = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    if (status == -1){
+        perror("error in fcntl");
+        exit(errno);
+    }
+}
+
+int AdminServer::parse_command() {
+    return BAN;
+}
+
+void AdminServer::parse_query() {
+
 }
 
 int main(){
     AdminServer server;
     server.run();
+    cout << "\nClosed gracefully...";
     return 0;
 }
