@@ -24,6 +24,9 @@ private:
     bool send_data_to_server(std::string &data);
 
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
+    inline const char * const bool_to_string(bool b) {
+        return b ? "true" : "false";
+    }
 
 
 public:

@@ -160,7 +160,7 @@ void Client::handle_listening_session() {
 
 void Client::prepare_message(string &channel, string &message, bool is_listener) {
     string data =
-            "{\"channel\":\"" + channel + "\",\"listener\":\"" + to_string(is_listener) + "\",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
+            "{\"channel\":\"" + channel + "\",\"listener\":\"" + bool_to_string(is_listener) + "\",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
     send_data_to_server(data);
 }
 
