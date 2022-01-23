@@ -11,8 +11,10 @@
 class Message {
 public:
     std::string channel;
+    bool is_listener;
     std::string message;
     std::string user_id;
+    Message() = default;
     explicit Message(const char *message);
 };
 
