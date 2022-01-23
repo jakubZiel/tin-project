@@ -147,7 +147,6 @@ size_t Client::split(const std::string &txt, std::vector<std::string> &strs, cha
     return strs.size();
 }
 
-
 int Client::init_socket(int protocol_type) {
     int n_socket = socket(AF_INET, protocol_type, 0);
     if (setsockopt(n_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
