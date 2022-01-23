@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include "MessageHistory.h"
 
 class Server {
 public:
@@ -24,6 +25,8 @@ private:
 
     sockaddr_in server_address{};
     sockaddr_in admin_server_address{};
+
+    std::unordered_map<std::string, MessageHistory<Message, 2>> message_history; // TODO constant
 
     static sockaddr_in associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address);
     std::vector<char> client_message;

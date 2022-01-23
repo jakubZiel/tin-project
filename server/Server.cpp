@@ -117,6 +117,7 @@ int Server::run() {
 
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
+                message_history[message.channel].push(message);
                 for (auto& cl : channels[message.channel]) {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
