@@ -79,6 +79,7 @@ void AdminServer::handle_msg_server_connection() {
                 handle_query();
             if (FD_ISSET(cmd_socket, &ready_sockets))
                     handle_command_request();
+
         }
     }
     FD_CLR(msg_server_connection_socket, &server_sockets);
