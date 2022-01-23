@@ -154,7 +154,7 @@ void Client::handle_listening_session() {
 
 void Client::prepare_message(string &channel, string &message) {
     string data =
-            "\"{\\\"channel\\\": \\\"" + channel + "\\\", \\\"message\\\": \\\"" + message + "\\\", \\\"userId\\\": \\\"" + to_string(client_socket) + "\\\"}\"";
+            "{\"channel\":\"" + channel + "\",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
     send_data_to_server(data);
 }
 
