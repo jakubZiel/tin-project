@@ -26,12 +26,12 @@ public:
 
 class ChannelManager {
     std::unordered_map<std::string, Channel> channels;
-    bool is_banned(std::string client, std::string channel);
-    bool can_send(std::string client, std::string channel);
-    bool can_listen(std::string client, std::string channel);
+    bool is_banned(const std::string& client, const std::string& channel);
+    bool can_send(const std::string& client, const std::string& channel);
+    bool can_listen(const std::string& client, const std::string& channel);
 
-    void set_privacy(std::string channel, bool is_private);
-    void set_max_size(std::string channel, size_t size);
-    void ban_from_channel(std::string channel, std::string client);
+    void set_privacy(const std::string& channel, bool is_private);
+    void set_max_size(const std::string& channel, size_t size);
+    void ban_from_channel(const std::string& channel, const std::string& client);
 };
 #endif
