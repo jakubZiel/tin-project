@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_executable(server
         server/Server.cpp
+        channel/Message.cpp
+        client/ClientInfo.cpp
         )
 add_executable(tin-client
         client/Client.cpp
