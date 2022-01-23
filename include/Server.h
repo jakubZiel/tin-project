@@ -23,8 +23,7 @@ private:
     sockaddr_in admin_server_address{};
     static sockaddr_in associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address);
 
-    std::vector<char> client_id;
-    std::unordered_set<ClientInfo> clients; // TODO remove?
+    std::vector<char> client_message;
     std::unordered_map<std::string, std::unordered_set<ClientInfo>> channels;
     std::vector<char> response;
     std::map<std::string, int> clients_datagram_count;
