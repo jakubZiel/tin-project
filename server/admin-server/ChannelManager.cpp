@@ -5,11 +5,11 @@
 #include "ChannelManager.h"
 
 bool ChannelManager::is_banned(const std::string& client, const std::string& channel) {
-    return channels[channel].banned.find(client) != channels[channel].banned.end();
+    return channels[channel].banned.find(client) == channels[channel].banned.end();
 }
 
 bool ChannelManager::can_send(const std::string& client, const std::string& channel) {
-    return channels[channel].sender == client;
+    return channels[channel].senders.find(client) == channels[channel].senders.find(channel);
 }
 
 bool ChannelManager::can_listen(const std::string& client, const std::string& channel) {

@@ -20,9 +20,8 @@ public:
     std::unordered_map<std::string, ClientInfo> banned;
     size_t max_size;
     size_t listening_clients;
-    std::string sender;
+    std::unordered_map<std::string, ClientInfo> senders;
 };
-
 
 class ChannelManager {
     std::unordered_map<std::string, Channel> channels;
