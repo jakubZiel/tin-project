@@ -26,6 +26,7 @@ public:
 
 class ChannelManager {
     std::unordered_map<std::string, Channel> channels;
+public:
     bool is_banned(const std::string& client, const std::string& channel);
     bool can_send(const std::string& client, const std::string& channel);
     bool can_listen(const std::string& client, const std::string& channel);

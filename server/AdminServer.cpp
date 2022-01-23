@@ -175,6 +175,14 @@ void AdminServer::make_non_blocking(int fd) {
     }
 }
 
+void AdminServer::parse_command() {
+
+}
+
+void AdminServer::parse_query() {
+
+}
+
 int main(){
     AdminServer server;
     server.run();

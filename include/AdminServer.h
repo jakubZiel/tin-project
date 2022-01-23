@@ -56,8 +56,9 @@ public:
     void prepare_signal_fd();
     void make_non_blocking(int fd);
 
+    void parse_command();
+    void parse_query();
 
     int run();
-
 };
 #endif //TIN_21Z_ADMINSERVER_H
