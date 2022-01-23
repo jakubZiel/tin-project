@@ -3,7 +3,13 @@
 #define NUMBER_OF_CONNECTIONS 100
 
 #include "sockets.h"
+#include "../channel/Message.h"
+#include "rapidjson/document.h"
+#include "ClientInfo.h"
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
+
 class Server {
 public:
     Server();
@@ -18,6 +24,8 @@ private:
     static sockaddr_in associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address);
 
     std::vector<char> client_id;
+    std::unordered_set<ClientInfo> clients; // TODO remove?
+    std::unordered_map<std::string, std::unordered_set<ClientInfo>> channels;
     std::vector<char> response;
     std::map<std::string, int> clients_datagram_count;
 
@@ -31,5 +39,7 @@ private:
     bool server_active;
 
     void prepare_fdset();
+
 };
+
 #endif //TIN_21Z_SERVER_H

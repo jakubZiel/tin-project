@@ -74,18 +74,27 @@ int Server::run() {
     while (server_active) {
         //TODO add signalfd , add select
         ready_sockets = sockets;
-        if (select(FD_SETSIZE, nullptr, &ready_sockets, nullptr, nullptr) < 0) {
+        if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
             cout << "Select fail, errno: " << errno << endl;
         } else if (FD_ISSET(server_socket, &ready_sockets)) {
             recvfrom(server_socket, client_id.data(), client_id.size(), 0, (sockaddr *) &client, &socklen);
+            auto clientInfo =  ClientInfo(client);
+            clients.insert(clientInfo); // TODO shoudl this be removed?
+            cout << "client ports: "; // TODO debug, remove in the future
+            for (auto& el : clients) { cout << el.addr.sin_port << " "; }
+            cout << endl;
             cout << "Datagram from client: " << client_id.data() << endl;
+            auto message = Message(client_id.data());
+            channels[message.channel].insert(clientInfo);
             clients_datagram_count[client_id.data()]++;
 
             strcpy(admin_query.data(), "SOME_QUERY");
             query_admin(admin_query.data());
 
-            strcpy(response.data(), client_id.data());
-            sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &client, sizeof(client));
+            strcpy(response.data(), message.message.c_str());
+            for (auto& cl : channels[message.channel]) {
+                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
+            }
         }
     }
     FD_CLR(server_socket, &sockets);
