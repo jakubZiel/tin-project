@@ -116,7 +116,7 @@ int Server::run() {
             }
 
             if (message.channel == END_CHANNEL) {
-                auto client_channels = find_client_channels(message.message, ' ');
+                auto client_channels = find_client_channels(message.message, '^');
                 for (auto& channel : client_channels) {
                     channels[channel].erase(clientInfo);
                 }
