@@ -192,9 +192,11 @@ const string Server::create_admin_query(const Message& message) {
     rapidjson::Value userId;
     userId = StringRef(message.user_id.c_str());
     rapidjson::Value listener(message.is_listener);
+    rapidjson::Value current_users_number(channels[message.channel].size());
 
     query_json.AddMember("channel", channel, query_json.GetAllocator());
     query_json.AddMember("listener", listener, query_json.GetAllocator());
+    query_json.AddMember("current_users_number", current_users_number, query_json.GetAllocator());
     query_json.AddMember("userId", userId, query_json.GetAllocator());
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
@@ -202,6 +204,7 @@ const string Server::create_admin_query(const Message& message) {
     // TODO remove, debug purposes
     cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
     cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
+    cout << "Current users number to admin: " << query_json["current_users_number"].GetInt() << endl;
     cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
     string res = buffer.GetString();
 
