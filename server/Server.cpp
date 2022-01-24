@@ -108,6 +108,7 @@ int Server::run() {
             admin_response_json.Parse(admin_response.data());
             if (!admin_response_json["authorized"].GetBool()) {
                 cerr << "User " << message.user_id << " is banned from channel " << message.channel << "." << endl;
+                channels[message.channel].erase(clientInfo);
                 continue;
             }
             channels[message.channel].insert(clientInfo);
