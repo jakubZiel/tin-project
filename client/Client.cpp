@@ -2,10 +2,17 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
+#include <sys/signalfd.h>
+#include <csignal>
+#include <cstdlib>
+#include <rapidjson/document.h>
 
 #include "Client.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 using namespace std;
+using namespace rapidjson;
 
 Client::Client() {
     tv.tv_sec = 3;
@@ -14,20 +21,24 @@ Client::Client() {
     server_address = inet_association(AF_INET, SERVER_PORT, inet_addr("127.0.0.1"));
 
     request_buffer = vector<char>(200);
-
     is_last = vector<char>(200);
 }
 
 int Client::run() {
     client_socket = init_socket(SOCK_DGRAM);
+    client_active = true;
 
-    int option = decide_input_method();
-    if (option == 1) {
+    prepare_signal_fd();
+
+    string option = decide_input_method();
+    if (option == "1") {
         handle_interactive_session();
-    } else if (option == 2) {
+    } else if (option == "2") {
         handle_batch_session();
-    } else if (option == 3){
+    } else if (option == "3"){
         handle_listening_session();
+    } else {
+        cout << "No such option!" << endl;
     }
     return 0;
 }
@@ -35,13 +46,13 @@ int Client::run() {
 //1 - interactive
 //2 - batch
 //3 - listening
-int Client::decide_input_method() {
+string Client::decide_input_method() {
     cout << "1 - interactive mode" << endl;
     cout << "2 - batch" << endl;
     cout << "3 - listening" << endl;
     cout << "Select input method: ";
-    int option;
-    cin >> option;
+    string option;
+    getline(cin, option);
     return option;
 }
 
@@ -50,13 +61,13 @@ void Client::handle_interactive_session() {
     while (true) {
         cout << "\nChannel: ";
         string channel;
-        cin >> channel;
-        cout << "\nMessage: ";
-        string message;
-        cin >> message;
-        if (message == "end") {
+        getline(cin, channel);
+        if (channel == "end") {
             break;
         }
+        cout << "\nMessage: ";
+        string message;
+        getline(cin, message);
         prepare_message(channel, message, false);
     }
 }
@@ -64,7 +75,7 @@ void Client::handle_interactive_session() {
 void Client::handle_batch_session() {
     cout << "File path: ";
     string path;
-    cin >> path;
+    getline(cin, path);
     ifstream message_file;
     message_file.open(path);
 
@@ -81,50 +92,74 @@ void Client::handle_batch_session() {
 void Client::handle_listening_session() {
     cout << "\nChannel: ";
     string channel;
-    cin >> channel;
+    getline(cin, channel);
     string channel_setup = "setup";
     prepare_message(channel, channel_setup, true);
 
-    while (true) {
+    while (client_active) {
         socklen_t server_address_len = sizeof(server_address);
         fd_set rfds;
         FD_ZERO(&rfds);
         FD_SET(client_socket, &rfds);
+        FD_SET(signal_fd, &rfds);
 
-        if (select(client_socket + 1, &rfds, NULL, NULL, &tv)) {
-            if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
-                         &server_address_len) <= 0) {
-                switch (errno) {
-                    case CONNECTION_REFUSED:
-                        cout << "Receive / Connection refused" << endl;
-                        break;
-                    case TIMEOUT:
-                        cout << "Receive / Timeout" << endl;
-                        break;
-                    default:
-                        cout << "Receive / Unknown error" << endl;
-                        break;
+        if (select(max(client_socket, signal_fd) + 1, &rfds, NULL, NULL, &tv)) {
+            if (FD_ISSET(signal_fd, &rfds))
+                handle_interrupt();
+            else if (FD_ISSET(client_socket, &rfds)){
+                if (recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address,
+                             &server_address_len) <= 0) {
+                    switch (errno) {
+                        case CONNECTION_REFUSED:
+                            cout << "Receive / Connection refused" << endl;
+                            break;
+                        case TIMEOUT:
+                            cout << "Receive / Timeout" << endl;
+                            break;
+                        default:
+                            cout << "Receive / Unknown error" << endl;
+                            break;
+                    }
+                } else {
+                    cout << "Received message:" << is_last.data() << endl;
                 }
             }
-            cout << "Received message:" << is_last.data() << endl;
         }
     }
 }
 
 void Client::prepare_message(string &channel, string &message, bool is_listener) {
-    string data =
-            "{\"channel\":\"" + channel + "\",\"listener\":" + bool_to_string(is_listener)
-            + ",\"message\":\"" + message + "\",\"userId\":\"" + to_string(client_socket) + "\"}";
-    send_data_to_server(data);
+    Document result;
+    result.SetObject();
+    rapidjson::Value channel_json;
+    channel_json = StringRef(channel.c_str());
+    rapidjson::Value listener_json;
+    listener_json = is_listener;
+    rapidjson::Value message_json;
+    message_json = StringRef(message.c_str());
+    rapidjson::Value id_json;
+    id_json = StringRef(to_string(client_socket).c_str());
+
+    result.AddMember("channel", channel_json, result.GetAllocator());
+    result.AddMember("listener", listener_json, result.GetAllocator());
+    result.AddMember("message", message_json, result.GetAllocator());
+    result.AddMember("userId", id_json, result.GetAllocator());
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    result.Accept(writer);
+
+    send_data_to_server(buffer.GetString());
 }
 
-bool Client::send_data_to_server(string &data) {
-    strcpy(request_buffer.data(), data.c_str());
+bool Client::send_data_to_server(const char * data) {
+    strcpy(request_buffer.data(), data);
     if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
         cout << "Send / Err :" << errno << endl;
         return false;
     } else {
         cout << "Wrote " << data << endl;
+        return true;
     }
 }
 
@@ -164,7 +199,37 @@ sockaddr_in Client::inet_association(sa_family_t in_family, in_port_t port, in_a
     return association;
 }
 
+void Client::handle_interrupt() {
+    siginfo_t signal_info;
+    read(signal_fd, &signal_info, sizeof(signal_info));
+    cout << endl << "Interrupted by SIGINT" << endl;
+    cout << signal_info.si_errno << endl;
+
+    client_active = false;
+}
+
+void Client::prepare_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        perror("can't block SIGINT for this process");
+        exit(errno);
+    }
+
+    signal_fd = signalfd(-1, &mask, 0);
+
+    if (signal_fd == -1){
+        perror("can't create signal fd");
+        exit(errno);
+    }
+}
+
+
 int main(int argc, char** argv) {
     Client client;
     client.run();
+    cout << "\nClosed gracefully...";
+    return 0;
 }

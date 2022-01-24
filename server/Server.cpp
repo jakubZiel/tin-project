@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <map>
+#include <sys/signalfd.h>
+#include <csignal>
 
 #include "sockets.h"
 #include "Server.h"
@@ -15,8 +17,8 @@ Server::Server() {
 
     client_message = vector<char>(2000); // TODO put size in a constant
     response = vector<char>(2000);
-    admin_query = vector<char>(100);
-    admin_response = vector<char>(100);
+    admin_query = vector<char>(1000);
+    admin_response = vector<char>(1000);
 
     clients_datagram_count = map<string, int>(); // TODO is it necessary?
     server_active = true;
@@ -70,12 +72,18 @@ int Server::run() {
     socklen_t socklen = sizeof(client);
 
     prepare_fdset();
+    prepare_signal_fd();
 
     while (server_active) {
         //TODO add signalfd , add select
         ready_sockets = sockets;
         if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
             cout << "Select fail, errno: " << errno << endl;
+            exit(errno);
+
+        } else if (FD_ISSET(signal_fd, &ready_sockets)){
+          handle_interrupt();
+
         } else if (FD_ISSET(server_socket, &ready_sockets)) {
             recvfrom(server_socket, client_message.data(), client_message.size(), 0, (sockaddr *) &client, &socklen);
             auto clientInfo =  ClientInfo(client);
@@ -107,6 +115,7 @@ int Server::run() {
     }
     FD_CLR(server_socket, &sockets);
     close(server_socket);
+
     // TODO remove in the future, development purposes
     for (const auto& client_record : clients_datagram_count) {
         cout << "Client nr:" + client_record.first + " sent:" << client_record.second << endl;
@@ -119,9 +128,39 @@ void Server::prepare_fdset() {
     FD_SET(server_socket, &sockets);
 }
 
+void Server::prepare_signal_fd() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        perror("can't block SIGINT for this process");
+        exit(errno);
+    }
+
+    signal_fd = signalfd(-1, &mask, 0);
+
+    if (signal_fd == -1){
+        perror("can't create signal fd");
+        exit(errno);
+    }
+
+    FD_SET(signal_fd, &sockets);
+}
+
+void Server::handle_interrupt() {
+    siginfo_t signal_info;
+    read(signal_fd, &signal_info, sizeof(signal_info));
+    cout << endl << "Interrupted by SIGINT" << endl;
+    cout << signal_info.si_errno << endl;
+
+    server_active = false;
+}
+
 int main() {
     Server server;
     server.run();
+    cout << "\nClosed gracefully...";
     return 0;
 }
 
