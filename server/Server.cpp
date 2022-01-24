@@ -107,7 +107,10 @@ int Server::run() {
             Document admin_response_json;
             admin_response_json.Parse(admin_response.data());
             if (!admin_response_json["authorized"].GetBool()) {
-                cerr << "User " << message.user_id << " is banned from channel " << message.channel << "." << endl;
+                auto error_message =  "User " + message.user_id + " is banned from channel " + message.channel + ".";
+                cerr << error_message << endl;
+                strcpy(response.data(), error_message.c_str());
+                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
                 channels[message.channel].erase(clientInfo);
                 continue;
             }
