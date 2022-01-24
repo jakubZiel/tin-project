@@ -15,7 +15,6 @@
 using namespace std;
 using namespace rapidjson;
 
-
 AdminServer::AdminServer() {
     queue_size = 20;
 

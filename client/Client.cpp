@@ -63,11 +63,14 @@ void Client::handle_interactive_session() {
         string channel;
         getline(cin, channel);
         if (channel == "end") {
+            end_sending();
             break;
         }
         cout << "\nMessage: ";
         string message;
         getline(cin, message);
+
+        affected_channels.insert(channel);
         prepare_message(channel, message, false);
     }
 }
@@ -95,6 +98,7 @@ void Client::handle_listening_session() {
     getline(cin, channel);
     string channel_setup = "setup";
     prepare_message(channel, channel_setup, true);
+    channel_listened_to = channel;
 
     while (client_active) {
         socklen_t server_address_len = sizeof(server_address);
@@ -205,7 +209,70 @@ void Client::handle_interrupt() {
     cout << endl << "Interrupted by SIGINT" << endl;
     cout << signal_info.si_errno << endl;
 
+    Document document;
+    document.SetObject();
+
+    Value channel;
+    channel = "RESTRICTED_CHANNEL";
+
+    Value user_id;
+    user_id = StringRef(to_string(client_socket).c_str());
+
+    Value is_listener;
+    is_listener = true;
+
+    string channels;
+    Value channels_payload;
+
+    channels_payload = StringRef(channel_listened_to.c_str());
+
+    document.AddMember("channel", channel,  document.GetAllocator());
+    document.AddMember("message", channels_payload, document.GetAllocator());
+    document.AddMember("userId", user_id, document.GetAllocator());
+    document.AddMember("listener", is_listener, document.GetAllocator());
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    document.Accept(writer);
+    string message = buffer.GetString();
+    sendto(client_socket, &message[0], message.length(), 0, (sockaddr *) &server_address, sizeof(server_address));
+    close(client_socket);
+
     client_active = false;
+}
+
+void Client::end_sending(){
+    Document document;
+    document.SetObject();
+
+    Value channel;
+    channel = "RESTRICTED_CHANNEL";
+
+    Value user_id;
+    user_id = StringRef(to_string(client_socket).c_str());
+
+    string channels;
+    Value channels_payload;
+    for (const auto & affected_channel : affected_channels){
+        channels += affected_channel + "^";
+    }
+    channels_payload = StringRef(channels.c_str());
+
+    Value is_listener;
+    is_listener = false;
+
+    document.AddMember("channel", channel,  document.GetAllocator());
+    document.AddMember("message", channels_payload, document.GetAllocator());
+    document.AddMember("userId", user_id, document.GetAllocator());
+    document.AddMember("listener", is_listener, document.GetAllocator());
+
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    document.Accept(writer);
+    string message = buffer.GetString();
+    sendto(client_socket, &message[0], message.length(), 0, (sockaddr *) &server_address, sizeof(server_address));
+    close(client_socket);
 }
 
 void Client::prepare_signal_fd() {
