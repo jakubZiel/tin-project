@@ -10,6 +10,7 @@ private:
 
     sockaddr_in server_address{};
     int client_socket{};
+    int client_id;
 
     std::vector<char> request_buffer;
     std::vector<char> is_last;
@@ -29,6 +30,7 @@ private:
 
     void handle_interrupt();
     void prepare_signal_fd();
+    void make_non_blocking(int fd);
 
 public:
     Client();
@@ -39,4 +41,4 @@ public:
     int run();
 
 };
-#endif TIN_21Z_CLIENT_H
+#endif //TIN_21Z_CLIENT_H
