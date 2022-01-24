@@ -50,6 +50,7 @@ private:
 
     std::vector<std::string> find_client_channels(const std::string& channels_string, char delimiter);
 
+    std::basic_string<char> print_message_history(std::string basicString);
 };
 
 #endif //TIN_21Z_SERVER_H
