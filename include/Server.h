@@ -1,8 +1,9 @@
 #ifndef TIN_21Z_SERVER_H
 #define TIN_21Z_SERVER_H
 #define HISTORY_SIZE 10
+#define END_CHANNEL "RESERVED_CHANNEL"
 
-#include "sockets.h"
+#include "constants.h"
 #include "../channel/Message.h"
 #include "rapidjson/document.h"
 #include "ClientInfo.h"
@@ -33,7 +34,6 @@ private:
     std::unordered_map<std::string, std::unordered_set<ClientInfo>> channels;
     std::vector<char> response;
 
-    std::map<std::string, int> clients_datagram_count;
     std::vector<char> admin_query;
 
     std::vector<char> admin_response;
@@ -48,6 +48,9 @@ private:
     void handle_interrupt();
     const std::string create_admin_query(const Message& message);
 
+    std::vector<std::string> find_client_channels(const std::string& channels_string, char delimiter);
+
+    std::basic_string<char> print_message_history(std::string basicString);
 };
 
 #endif //TIN_21Z_SERVER_H

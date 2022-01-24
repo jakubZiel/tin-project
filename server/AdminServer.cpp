@@ -10,13 +10,18 @@
 #include <rapidjson/document.h>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include <iostream>
+#include <iomanip>
+#include <ctime>
+
 #include "AdminServer.h"
+#include "constants.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace rapidjson;
 
-
-AdminServer::AdminServer() {
+AdminServer::AdminServer() : logger(LOGFILE) {
     queue_size = 20;
 
     admin_server_address = inet_association(AF_INET, ADMIN_PORT, INADDR_ANY);
@@ -31,6 +36,8 @@ AdminServer::AdminServer() {
 
     admin_server_active = true;
     connection_opened = false;
+
+    string logfile_path = LOGFILE;
 
     prepare_command_table();
 }
@@ -214,14 +221,29 @@ void AdminServer::make_non_blocking(int fd) {
 
 string AdminServer::handle_query(string& query){
     Document document;
-    document.Parse(query.c_str());
+    StringStream stream(query.c_str());
+
+    document.ParseStream<kParseStopWhenDoneFlag>(stream);
 
     bool is_authorized;
 
     if (document["listener"].GetBool()){
-        is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString());
+        is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString(), document["current_users_number"].GetInt());
     } else {
         is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());
+    }
+
+    if (!is_authorized) {
+        Value date;
+        auto t = std::time(nullptr);
+        auto tm = *std::localtime(&t);
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+        auto str = oss.str();
+        date = StringRef(str.c_str());
+
+        document.AddMember("timestamp", date, document.GetAllocator());
+        logger.log(document);
     }
 
     Document response;
@@ -237,7 +259,7 @@ string AdminServer::handle_query(string& query){
 void AdminServer::prepare_command_table() {
     command_table["ban"] = BAN;
     command_table["unban"] = UNBAN;
-    command_table["get_users"] = USERS;
+    command_table["get_banned_users"] = USERS;
     command_table["set_max_users"] = SET_MAX_SIZE;
     command_table["set_privacy"] = SET_PRIVACY;
 }
