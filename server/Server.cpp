@@ -24,7 +24,6 @@ Server::Server() {
     admin_query = vector<char>(1000);
     admin_response = vector<char>(1000);
 
-    clients_datagram_count = map<string, int>(); // TODO is it necessary?
     server_active = true;
 
 }
@@ -134,6 +133,9 @@ int Server::run() {
                 for (auto& cl : channels[message.channel]) {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
+            } else {
+                strcpy(response.data(), print_message_history(message.channel).c_str());
+                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
             }
         }
     }
@@ -219,6 +221,16 @@ vector<string> Server::find_client_channels(const string& channels_string, char 
     }
     result_channels.push_back(current_channel);
     return result_channels;
+}
+
+string Server::print_message_history(std::string channel) {
+    string result = "\nLast messages:\n";
+    auto helper = MessageHistory<Message, HISTORY_SIZE>(message_history[channel]);
+    while(!helper.empty()) {
+        result += (helper.front().message) + "\n";
+        helper.pop();
+    }
+    return result;
 }
 
 int main() {
