@@ -91,15 +91,12 @@ void AdminServer::handle_msg_server_connection() {
 
 void AdminServer::handle_query() {
     long status = recv(msg_server_connection_socket, _request.data(), _request.size(), 0);
-    find_record(_request, _response);
 
-    //TODO server sending queries
-    /*string query = string(_request.data());
+    string query = string(_request.data());
     string response = handle_query(query);
     strcpy(_response.data(), &response[0]);
-    cout << "QUERY RESPONSE : " << _response.data() << endl;*/
+    cout << "QUERY RESPONSE : " << _response.data() << endl;
 
-    cout << "query answered" << endl;
     send(msg_server_connection_socket, _response.data(), _response.size(), 0);
 }
 
@@ -232,6 +229,7 @@ string AdminServer::handle_query(string& query){
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
     response.Accept(writer);
+    string res = buffer.GetString();
     return buffer.GetString();
 }
 

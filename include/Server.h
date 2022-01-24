@@ -40,13 +40,13 @@ private:
     int connect_to_admin();
     static int bind_socket(int protocol_type, sockaddr_in& address_to_bind);
 
-    size_t query_admin(char* query);
+    size_t query_admin(std::string query);
 
     void prepare_fdset();
 
     void prepare_signal_fd();
     void handle_interrupt();
-    const char *create_admin_query(const Message& message);
+    const std::string create_admin_query(const Message& message);
 
 };
 

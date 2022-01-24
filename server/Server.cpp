@@ -59,9 +59,8 @@ int Server::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
     return n_socket;
 }
 
-size_t Server::query_admin(char* query){
-    int request_size;
-    send(admin_socket, query, sizeof(query), 0);
+size_t Server::query_admin(string query){
+    int request_size = send(admin_socket, &query[0], query.size(), 0);
     return recv(admin_socket, admin_response.data(), admin_response.size(), 0);
 }
 
@@ -99,8 +98,10 @@ int Server::run() {
                 cerr << e.what() << endl;
                 continue;
             }
+            string query = create_admin_query(message);
 
-            strcpy(admin_query.data(), create_admin_query(message));
+
+            strcpy(admin_query.data(), &query[0]);
             query_admin(admin_query.data());
 
             Document admin_response_json;
@@ -169,7 +170,7 @@ void Server::handle_interrupt() {
     server_active = false;
 }
 
-const char *Server::create_admin_query(const Message& message) {
+const string Server::create_admin_query(const Message& message) {
     Document query_json;
     query_json.SetObject();
     rapidjson::Value channel;
@@ -188,6 +189,8 @@ const char *Server::create_admin_query(const Message& message) {
     cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
     cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
     cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
+    string res = buffer.GetString();
+
     return buffer.GetString();
 }
 
