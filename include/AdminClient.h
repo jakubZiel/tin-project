@@ -5,7 +5,7 @@
 #ifndef TIN_21Z_ADMINCLIENT_H
 #define TIN_21Z_ADMINCLIENT_H
 
-#include "sockets.h"
+#include "constants.h"
 #include <vector>
 
 class AdminClient {

@@ -11,6 +11,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "AdminServer.h"
+#include "constants.h"
 
 using namespace std;
 using namespace rapidjson;
@@ -213,12 +214,13 @@ void AdminServer::make_non_blocking(int fd) {
 
 string AdminServer::handle_query(string& query){
     Document document;
-    document.Parse(query.c_str());
+    StringStream stream(query.c_str());
+
+    document.ParseStream<kParseStopWhenDoneFlag>(stream);
 
     bool is_authorized;
 
     if (document["listener"].GetBool()){
-
         is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString(), document["current_users_number"].GetInt());
     } else {
         is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());

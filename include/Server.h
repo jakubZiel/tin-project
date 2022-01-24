@@ -3,7 +3,7 @@
 #define HISTORY_SIZE 10
 #define END_CHANNEL "RESERVED_CHANNEL"
 
-#include "sockets.h"
+#include "constants.h"
 #include "../channel/Message.h"
 #include "rapidjson/document.h"
 #include "ClientInfo.h"

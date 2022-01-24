@@ -214,7 +214,7 @@ void Client::handle_interrupt() {
     document.SetObject();
 
     Value channel;
-    channel = "RESTRICTED_CHANNEL";
+    channel = END_MESSAGE;
 
     Value user_id;
     user_id = StringRef(to_string(client_socket).c_str());
@@ -247,7 +247,7 @@ void Client::end_sending(){
     document.SetObject();
 
     Value channel;
-    channel = "RESTRICTED_CHANNEL";
+    channel = END_MESSAGE;
 
     Value user_id;
     user_id = StringRef(to_string(client_socket).c_str());
