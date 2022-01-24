@@ -10,6 +10,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
+
 using namespace std;
 using namespace rapidjson;
 
@@ -100,7 +101,6 @@ int Server::run() {
             }
             string query = create_admin_query(message);
 
-
             strcpy(admin_query.data(), &query[0]);
             query_admin(admin_query.data());
 
@@ -115,11 +115,20 @@ int Server::run() {
                 continue;
             }
 
+            if (message.channel == END_CHANNEL) {
+                auto client_channels = find_client_channels(message.message, ' ');
+                for (auto& channel : client_channels) {
+                    channels[channel].erase(clientInfo);
+                }
+                continue;
+            }
+
             channels[message.channel].insert(clientInfo);
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
             cout << endl;
             clients_datagram_count[client_message.data()]++;
+
 
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
@@ -197,6 +206,21 @@ const string Server::create_admin_query(const Message& message) {
     string res = buffer.GetString();
 
     return buffer.GetString();
+}
+
+vector<string> Server::find_client_channels(const string& channels_string, char delimiter) {
+    vector<string> result_channels;
+    string current_channel;
+    for (auto ch : channels_string) {
+        if (ch == delimiter) {
+            result_channels.push_back(current_channel);
+            current_channel = "";
+        } else {
+            current_channel += ch;
+        }
+    }
+    result_channels.push_back(current_channel);
+    return result_channels;
 }
 
 int main() {
