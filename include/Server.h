@@ -1,6 +1,7 @@
 #ifndef TIN_21Z_SERVER_H
 #define TIN_21Z_SERVER_H
 #define HISTORY_SIZE 10
+#define END_CHANNEL "RESERVED_CHANNEL"
 
 #include "sockets.h"
 #include "../channel/Message.h"
@@ -47,6 +48,8 @@ private:
     void prepare_signal_fd();
     void handle_interrupt();
     const std::string create_admin_query(const Message& message);
+
+    std::vector<std::string> find_client_channels(const std::string& channels_string, char delimiter);
 
 };
 
