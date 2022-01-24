@@ -2,7 +2,8 @@
 #define TIN_21Z_CLIENT_H
 
 #include <vector>
-#include "sockets.h"
+#include "constants.h"
+#include <unordered_set>
 
 class Client {
 private:
@@ -15,6 +16,8 @@ private:
     std::vector<char> is_last;
     int signal_fd;
     bool client_active;
+    std::unordered_set<std::string> affected_channels;
+    std::string channel_listened_to;
 
     std::string decide_input_method();
 
@@ -28,6 +31,7 @@ private:
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
 
     void handle_interrupt();
+    void end_sending();
     void prepare_signal_fd();
 
 public:

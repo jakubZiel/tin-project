@@ -138,7 +138,7 @@ int AdminClient::parse_command(string &command) {
     if (command == "set_max_users") {
         return 2;
     }
-    if (command == "get_users") {
+    if (command == "get_banned_users") {
         return 3;
     }
     if (command == "set_max_stored_messages"){
@@ -180,7 +180,7 @@ void AdminClient::handle_command_arguments_interactive(int command_code) {
             handle_max_users_on_channel();
             break;
         case 3:
-            handle_get_users();
+            handle_get_banned_users();
             break;
         case 4:
             handle_set_max_stored_messages();
@@ -200,7 +200,7 @@ void AdminClient::handle_command_arguments_batch(int command_code, std::vector<s
             prepare_max_users_message(args[1], args[2]);
             break;
         case 3:
-            prepare_get_users_message(args[1]);
+            prepare_get_banned_users_message(args[1]);
             break;
         case 4:
             prepare_set_max_stored_messages(args[1]);
@@ -223,7 +223,7 @@ void AdminClient::handle_ban_user() {
 
 void AdminClient::prepare_ban_user_message(string &channel, string &user_id) {
     string message =
-            "{\"command\":\"ban\",\"channel\":\"" + channel + "\",\"user_id\":\"" + user_id + "\"}";
+            R"({"command":"ban","channel":")" + channel + R"(","user_id":")" + user_id + "\"}";
     send_data_to_server(message);
 }
 
@@ -239,21 +239,21 @@ void AdminClient::handle_max_users_on_channel() {
 
 void AdminClient::prepare_max_users_message(string &channel, string &max_users) {
     string message =
-            "{command:max_users,channel:" + channel + ",max_users:" + max_users + "}";
+            R"({"command":"max_users","channel":")" + channel + R"(","max_users":)" + max_users + "}";
     send_data_to_server(message);
 }
 
-void AdminClient::handle_get_users() {
+void AdminClient::handle_get_banned_users() {
     cout << "\nchannel: ";
     string channel;
     cin >> channel;
 
-    prepare_get_users_message(channel);
+    prepare_get_banned_users_message(channel);
 }
 
-void AdminClient::prepare_get_users_message(string &channel) {
+void AdminClient::prepare_get_banned_users_message(string &channel) {
     string message =
-            "{command:get_users,channel:" + channel + "}";
+            R"({"command":"get_banned_users","channel":")" + channel + "\"}";
     send_data_to_server(message);
     get_response();
 }
@@ -267,7 +267,7 @@ void AdminClient::handle_set_max_stored_messages() {
 
 void AdminClient::prepare_set_max_stored_messages(string &max_stored_messages) {
     string message =
-            "{command:set_max_stored_messages,max_stored:" + max_stored_messages + "}";
+            R"({"command":"set_max_stored_messages","max_stored":)" + max_stored_messages + "\"}";
     send_data_to_server(message);
 }
 
@@ -283,6 +283,6 @@ void AdminClient::handle_unban_user() {
 
 void AdminClient::prepare_unban_user_message(string &channel, string &user_id) {
     string message =
-            "{command:unban,channel:" + channel + ",user_id:" + user_id + "}";
+            R"({"command":"unban","channel":")" + channel + R"(","user_id":")" + user_id + "\"}";
     send_data_to_server(message);
 }

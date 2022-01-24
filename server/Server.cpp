@@ -5,10 +5,11 @@
 #include <sys/signalfd.h>
 #include <csignal>
 
-#include "sockets.h"
+#include "constants.h"
 #include "Server.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+
 
 using namespace std;
 using namespace rapidjson;
@@ -23,7 +24,6 @@ Server::Server() {
     admin_query = vector<char>(1000);
     admin_response = vector<char>(1000);
 
-    clients_datagram_count = map<string, int>(); // TODO is it necessary?
     server_active = true;
 
 }
@@ -100,22 +100,32 @@ int Server::run() {
             }
             string query = create_admin_query(message);
 
-
             strcpy(admin_query.data(), &query[0]);
             query_admin(admin_query.data());
 
             Document admin_response_json;
             admin_response_json.Parse(admin_response.data());
             if (!admin_response_json["authorized"].GetBool()) {
-                cerr << "User " << message.user_id << " is banned from channel " << message.channel << "." << endl;
+                auto error_message =  "User " + message.user_id + " is banned from channel " + message.channel + ".";
+                cerr << error_message << endl;
+                strcpy(response.data(), error_message.c_str());
+                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
                 channels[message.channel].erase(clientInfo);
                 continue;
             }
+
+            if (message.channel == END_CHANNEL) {
+                auto client_channels = find_client_channels(message.message, '^');
+                for (auto& channel : client_channels) {
+                    channels[channel].erase(clientInfo);
+                }
+                continue;
+            }
+
             channels[message.channel].insert(clientInfo);
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
             cout << endl;
-            clients_datagram_count[client_message.data()]++;
 
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
@@ -123,19 +133,19 @@ int Server::run() {
                 for (auto& cl : channels[message.channel]) {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
+            } else {
+                strcpy(response.data(), print_message_history(message.channel).c_str());
+                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
             }
-
         }
     }
     FD_CLR(server_socket, &sockets);
     close(server_socket);
 
-    // TODO remove in the future, development purposes
-    for (const auto& client_record : clients_datagram_count) {
-        cout << "Client nr:" + client_record.first + " sent:" << client_record.second << endl;
-    }
     return 0;
 }
+
+
 
 void Server::prepare_fdset() {
     FD_ZERO(&sockets);
@@ -179,9 +189,11 @@ const string Server::create_admin_query(const Message& message) {
     rapidjson::Value userId;
     userId = StringRef(message.user_id.c_str());
     rapidjson::Value listener(message.is_listener);
+    rapidjson::Value current_users_number(channels[message.channel].size());
 
     query_json.AddMember("channel", channel, query_json.GetAllocator());
     query_json.AddMember("listener", listener, query_json.GetAllocator());
+    query_json.AddMember("current_users_number", current_users_number, query_json.GetAllocator());
     query_json.AddMember("userId", userId, query_json.GetAllocator());
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
@@ -189,10 +201,36 @@ const string Server::create_admin_query(const Message& message) {
     // TODO remove, debug purposes
     cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
     cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
+    cout << "Current users number to admin: " << query_json["current_users_number"].GetInt() << endl;
     cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
     string res = buffer.GetString();
 
     return buffer.GetString();
+}
+
+vector<string> Server::find_client_channels(const string& channels_string, char delimiter) {
+    vector<string> result_channels;
+    string current_channel;
+    for (auto ch : channels_string) {
+        if (ch == delimiter) {
+            result_channels.push_back(current_channel);
+            current_channel = "";
+        } else {
+            current_channel += ch;
+        }
+    }
+    result_channels.push_back(current_channel);
+    return result_channels;
+}
+
+string Server::print_message_history(std::string channel) {
+    string result = "\nLast messages:\n";
+    auto helper = MessageHistory<Message, HISTORY_SIZE>(message_history[channel]);
+    while(!helper.empty()) {
+        result += (helper.front().message) + "\n";
+        helper.pop();
+    }
+    return result;
 }
 
 int main() {

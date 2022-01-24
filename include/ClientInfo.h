@@ -1,7 +1,7 @@
 #ifndef TIN_21Z_CLIENTINFO_H
 #define TIN_21Z_CLIENTINFO_H
 
-#include <sockets.h>
+#include <constants.h>
 #include <cstddef>
 #include <string>
 

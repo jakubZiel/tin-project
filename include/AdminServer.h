@@ -5,7 +5,7 @@
 #ifndef TIN_21Z_ADMINSERVER_H
 #define TIN_21Z_ADMINSERVER_H
 
-#include "sockets.h"
+#include "constants.h"
 #include <sys/signalfd.h>
 #include <vector>
 #include "ChannelManager.h"
