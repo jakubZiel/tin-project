@@ -1,6 +1,6 @@
 #ifndef TIN_21Z_SERVER_H
 #define TIN_21Z_SERVER_H
-#define NUMBER_OF_CONNECTIONS 100
+#define HISTORY_SIZE 10
 
 #include "sockets.h"
 #include "../channel/Message.h"
@@ -26,7 +26,7 @@ private:
     sockaddr_in server_address{};
     sockaddr_in admin_server_address{};
 
-    std::unordered_map<std::string, MessageHistory<Message, 2>> message_history; // TODO constant
+    std::unordered_map<std::string, MessageHistory<Message, HISTORY_SIZE>> message_history;
 
     static sockaddr_in associate_inet(sa_family_t in_family, in_port_t port, in_addr_t address);
     std::vector<char> client_message;

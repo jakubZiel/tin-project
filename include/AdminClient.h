@@ -26,13 +26,13 @@ private:
 
     void handle_ban_user();
     void handle_max_users_on_channel();
-    void handle_get_users();
+    void handle_get_banned_users();
     void handle_set_max_stored_messages();
     void handle_unban_user();
 
     void prepare_ban_user_message(std::string &channel, std::string &user_id);
     void prepare_max_users_message(std::string &channel, std::string &max_users);
-    void prepare_get_users_message(std::string &channel);
+    void prepare_get_banned_users_message(std::string &channel);
     void prepare_set_max_stored_messages(std::string &max_stored_messages);
     void prepare_unban_user_message(std::string &channel, std::string &user_id);
 

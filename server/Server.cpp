@@ -111,6 +111,7 @@ int Server::run() {
                 channels[message.channel].erase(clientInfo);
                 continue;
             }
+
             channels[message.channel].insert(clientInfo);
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
