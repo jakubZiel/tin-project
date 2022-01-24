@@ -4,7 +4,9 @@
 #include <fstream>
 #include <sys/signalfd.h>
 #include <csignal>
+#include <fcntl.h>
 #include <cstdlib>
+#include <random>
 #include <rapidjson/document.h>
 
 #include "Client.h"
@@ -19,10 +21,15 @@ Client::Client() {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
 
+    mt19937_64 mt(time(nullptr));
+    client_id = mt() % 1000000 + 100000;
+
     server_address = inet_association(AF_INET, SERVER_PORT, inet_addr("127.0.0.1"));
 
     request_buffer = vector<char>(200);
     is_last = vector<char>(200);
+
+    int is_banned;
 }
 
 int Client::run() {
@@ -58,8 +65,10 @@ string Client::decide_input_method() {
 }
 
 void Client::handle_interactive_session() {
+    //make_non_blocking(client_socket);
+
     string message;
-    while (true) {
+    while (client_active) {
         cout << "\nChannel: ";
         string channel;
         getline(cin, channel);
@@ -67,16 +76,19 @@ void Client::handle_interactive_session() {
             end_sending();
             break;
         }
-        cout << "\nMessage: ";
-        string message;
-        getline(cin, message);
-
-        affected_channels.insert(channel);
-        prepare_message(channel, message, false);
+        if (channel != "RESERVED_CHANNEL" && channel.find('^') == string::npos) {
+            cout << "\nMessage: ";
+            string message;
+            getline(cin, message);
+            prepare_message(channel, message, false);
+        } else {
+            cout << "\nForbidden channel name!";
+        }
     }
 }
 
 void Client::handle_batch_session() {
+    //make_non_blocking(client_socket);
     cout << "File path: ";
     string path;
     getline(cin, path);
@@ -127,7 +139,7 @@ void Client::handle_listening_session() {
                             break;
                     }
                 } else {
-                    cout << "Received message:" << is_last.data() << endl;
+                    cout << "Received message: " << is_last.data() << endl;
                 }
             }
         }
@@ -144,7 +156,7 @@ void Client::prepare_message(string &channel, string &message, bool is_listener)
     rapidjson::Value message_json;
     message_json = StringRef(message.c_str());
     rapidjson::Value id_json;
-    id_json = StringRef(to_string(client_socket).c_str());
+    id_json = StringRef(to_string(client_id).c_str());
 
     result.AddMember("channel", channel_json, result.GetAllocator());
     result.AddMember("listener", listener_json, result.GetAllocator());
@@ -155,15 +167,20 @@ void Client::prepare_message(string &channel, string &message, bool is_listener)
     Writer<StringBuffer> writer(buffer);
     result.Accept(writer);
 
-    send_data_to_server(buffer.GetString());
+    send_data_to_server(buffer.GetString(), message);
 }
 
-bool Client::send_data_to_server(const char * data) {
+bool Client::send_data_to_server(const char * data, string message) {
+    socklen_t server_address_len = sizeof(server_address);
     strcpy(request_buffer.data(), data);
     if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
         cout << "Send / Err :" << errno << endl;
         return false;
     } else {
+        is_banned = recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address, &server_address_len);
+        if (is_banned > 0 && is_last.data() != message) {
+            cout << is_last.data() << endl;
+        }
         cout << "Wrote " << data << endl;
         return true;
     }
@@ -291,6 +308,14 @@ void Client::prepare_signal_fd() {
 
     if (signal_fd == -1){
         perror("can't create signal fd");
+        exit(errno);
+    }
+}
+
+void Client::make_non_blocking(int fd) {
+    int status = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    if (status == -1){
+        perror("error in fcntl");
         exit(errno);
     }
 }
