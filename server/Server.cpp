@@ -106,9 +106,9 @@ int Server::run() {
             Document admin_response_json;
             admin_response_json.Parse(admin_response.data());
             if (!admin_response_json["authorized"].GetBool()) {
-                auto error_message =  "User " + message.user_id + " is banned from channel " + message.channel + ".";
+                auto error_message =  "Channel access denied. You have either been banned or the channel is full.";
                 cerr << error_message << endl;
-                strcpy(response.data(), error_message.c_str());
+                strcpy(response.data(), error_message);
                 sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
                 channels[message.channel].erase(clientInfo);
                 continue;
