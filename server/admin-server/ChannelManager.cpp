@@ -5,29 +5,47 @@
 #include "ChannelManager.h"
 
 bool ChannelManager::is_banned(const std::string& client, const std::string& channel) {
-    return channels[channel].banned.find(client) == channels[channel].banned.end();
+    if (channels.find(channel) != channels.end())
+        return channels[channel].banned.find(client) != channels[channel].banned.end();
+    return false;
 }
 
 bool ChannelManager::can_send(const std::string& client, const std::string& channel) {
-    return channels[channel].senders.find(client) == channels[channel].senders.find(channel);
+    if (channels.find(channel) != channels.end())
+        return !is_banned(client, channel);
+
+    channels[channel] = Channel();
+    return true;
 }
 
 bool ChannelManager::can_listen(const std::string& client, const std::string& channel) {
-    return !is_banned(client, channel) && channels[channel].listening_clients < channels[channel].max_size;
+    if (channels.find(channel) != channels.end())
+        return !is_banned(client, channel) && channels[channel].listening_clients < channels[channel].max_size;
+
+    channels[channel] = Channel();
+    return true;
 }
 
 void ChannelManager::set_privacy(const std::string& channel, bool is_private) {
-    channels[channel].is_private = is_private;
+    if (channels.find(channel) != channels.end())
+        channels[channel].is_private = is_private;
 }
 
 void ChannelManager::set_max_size(const std::string& channel, size_t size) {
     if (size > MAX_SIZE || size < 1)
         return;
-    channels[channel].max_size = size;
+    if (channels.find(channel) != channels.end())
+        channels[channel].max_size = size;
 }
 
 void ChannelManager::ban_from_channel(const std::string& channel, const std::string& client) {
-    channels[channel].banned[client] = ClientInfo();
+    if (channels.find(channel) != channels.end())
+        channels[channel].banned[client] = ClientInfo();
+}
+
+void ChannelManager::unban_from_channel(const std::string &channel, const std::string &client) {
+    if (channels.find(channel) != channels.end())
+        channels[channel].banned.erase(client);
 }
 
 std::string ChannelManager::get_clients(std::string channel) {

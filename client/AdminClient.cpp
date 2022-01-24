@@ -29,14 +29,14 @@ AdminClient::AdminClient() {
 
 bool AdminClient::send_command(string &data) {
     cout <<  "Sending...\n";
-    if (sendto(client_socket, data.c_str(), sizeof (data.c_str()), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
+
+    if (sendto(client_socket, data.c_str(), data.length(), 0, (sockaddr*)&server_address, sizeof(server_address)) <= 0) {
         cout << "send / err :" << errno << endl;
         return false;
     }
     else {
         cout << "command has been issued" << endl;
     }
-
     return true;
 }
 
@@ -223,7 +223,7 @@ void AdminClient::handle_ban_user() {
 
 void AdminClient::prepare_ban_user_message(string &channel, string &user_id) {
     string message =
-            "{command:ban,channel:" + channel + ",user_id:" + user_id + "}";
+            "{\"command\":\"ban\",\"channel\":\"" + channel + "\",\"user_id\":\"" + user_id + "\"}";
     send_data_to_server(message);
 }
 
@@ -286,10 +286,3 @@ void AdminClient::prepare_unban_user_message(string &channel, string &user_id) {
             "{command:unban,channel:" + channel + ",user_id:" + user_id + "}";
     send_data_to_server(message);
 }
-
-
-
-
-
-
-
