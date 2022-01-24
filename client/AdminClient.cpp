@@ -141,14 +141,11 @@ int AdminClient::parse_command(string &command) {
     if (command == "get_users") {
         return 3;
     }
-    if (command == "set_channel_mode"){
+    if (command == "set_max_stored_messages"){
         return 4;
     }
-    if (command == "set_max_stored_messages"){
-        return 5;
-    }
     if (command == "unban"){
-        return 6;
+        return 5;
     }
 
     //error code
@@ -186,12 +183,9 @@ void AdminClient::handle_command_arguments_interactive(int command_code) {
             handle_get_users();
             break;
         case 4:
-            handle_set_channel_mode();
-            break;
-        case 5:
             handle_set_max_stored_messages();
             break;
-        case 6:
+        case 5:
             handle_unban_user();
             break;
     }
@@ -209,18 +203,13 @@ void AdminClient::handle_command_arguments_batch(int command_code, std::vector<s
             prepare_get_users_message(args[1]);
             break;
         case 4:
-            prepare_set_channel_mode_message(args[1], args[2]);
+            prepare_set_max_stored_messages(args[1]);
             break;
         case 5:
-            prepare_set_max_stored_messages(args[1], args[2]);
-            break;
-        case 6:
             prepare_unban_user_message(args[1], args[2]);
             break;
     }
 }
-
-
 
 void AdminClient::handle_ban_user() {
     cout << "\nchannel: ";
@@ -269,35 +258,16 @@ void AdminClient::prepare_get_users_message(string &channel) {
     get_response();
 }
 
-void AdminClient::handle_set_channel_mode() {
-    cout << "\nchannel: ";
-    string channel;
-    cin >> channel;
-    cout << "\nchannel mode (private or public): ";
-    string mode;
-    cin >> mode;
-    prepare_set_channel_mode_message(channel, mode);
-}
-
-void AdminClient::prepare_set_channel_mode_message(string &channel, string &mode) {
-    string message =
-            "{command:set_channel_mode,channel:" + channel + ",mode:" + mode + "}";
-    send_data_to_server(message);
-}
-
 void AdminClient::handle_set_max_stored_messages() {
-    cout << "\nchannel: ";
-    string channel;
-    cin >> channel;
     cout << "\nmax stored messages: ";
     string max_stored;
     cin >> max_stored;
-    prepare_set_max_stored_messages(channel, max_stored);
+    prepare_set_max_stored_messages(max_stored);
 }
 
-void AdminClient::prepare_set_max_stored_messages(string &channel, string &max_stored_messages) {
+void AdminClient::prepare_set_max_stored_messages(string &max_stored_messages) {
     string message =
-            "{command:set_max_stored_messages,channel:" + channel + ",max_stored:" + max_stored_messages + "}";
+            "{command:set_max_stored_messages,max_stored:" + max_stored_messages + "}";
     send_data_to_server(message);
 }
 
