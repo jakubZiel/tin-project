@@ -7,10 +7,14 @@
 #include <sys/signalfd.h>
 #include <csignal>
 #include <fcntl.h>
-
+#include <rapidjson/document.h>
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "AdminServer.h"
 
 using namespace std;
+using namespace rapidjson;
+
 
 AdminServer::AdminServer() {
     queue_size = 20;
@@ -20,13 +24,15 @@ AdminServer::AdminServer() {
 
     msg_server_address_size = sizeof(msg_server_address);
 
-    _request = vector<char>(50);
-    _response = vector<char>(50);
-    _command = vector<char>(50);
-    _command_response = vector<char>(50);
+    _request = vector<char>(1000);
+    _response = vector<char>(1000);
+    _command = vector<char>(1000);
+    _command_response = vector<char>(1000);
 
     admin_server_active = true;
     connection_opened = false;
+
+    prepare_command_table();
 }
 
 int AdminServer::run() {
@@ -78,7 +84,7 @@ void AdminServer::handle_msg_server_connection() {
             if (FD_ISSET(msg_server_connection_socket,  &ready_sockets))
                 handle_query();
             if (FD_ISSET(cmd_socket, &ready_sockets))
-                    handle_command_request();
+                handle_command_request();
         }
     }
     FD_CLR(msg_server_connection_socket, &server_sockets);
@@ -87,16 +93,22 @@ void AdminServer::handle_msg_server_connection() {
 
 void AdminServer::handle_query() {
     long status = recv(msg_server_connection_socket, _request.data(), _request.size(), 0);
-    find_record(_request, _response);
-    cout << "query answered" << endl;
+
+    string query = string(_request.data());
+    string response = handle_query(query);
+    strcpy(_response.data(), &response[0]);
+    cout << "QUERY RESPONSE : " << _response.data() << endl;
+
     send(msg_server_connection_socket, _response.data(), _response.size(), 0);
 }
+
 
 void AdminServer::handle_command_request() {
     admin_client_address_size = sizeof (admin_client_address);
     recvfrom(cmd_socket, _command.data(), _command.size(), 0, (sockaddr*) &admin_client_address, &admin_client_address_size);
+
     handle_command(_command, _command_response);
-    auto x = ntohs(admin_client_address.sin_port);
+
     sendto(cmd_socket, _command_response.data(), _command_response.size(), 0, (sockaddr*) &admin_client_address, admin_client_address_size);
 }
 
@@ -129,22 +141,27 @@ sockaddr_in AdminServer::inet_association(sa_family_t in_family, in_port_t port,
     return association;
 }
 
-void AdminServer::find_record(std::vector<char> &request, std::vector<char> &response) {
-    strcpy(request.data(), "USER AUTHORIZED");
-}
-
 void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &response) {
-    string channel = "channel5";
-    string client = "client1";
-    int size = 15;
+    Document document;
 
-    switch (parse_command()) {
+    document.Parse(request.data());
+    cout << request.data();
+    string channel = document["channel"].GetString();
+    string user = document["user_id"].GetString();
+    int size;
+
+    switch (command_table[document["command"].GetString()]) {
         case BAN:
-            channelManager.ban_from_channel(channel, client);
+            channelManager.ban_from_channel(channel, user);
+            break;
+        case UNBAN:
+            channelManager.unban_from_channel(channel, user);
+            break;
         case USERS:
             channelManager.get_clients(channel);
             break;
         case SET_MAX_SIZE:
+            size = document["max_users"].GetInt();
             channelManager.set_max_size(channel, size);
             break;
         case SET_PRIVACY:
@@ -195,12 +212,34 @@ void AdminServer::make_non_blocking(int fd) {
     }
 }
 
-int AdminServer::parse_command() {
-    return BAN;
+string AdminServer::handle_query(string& query){
+    Document document;
+    document.Parse(query.c_str());
+
+    bool is_authorized;
+
+    if (document["listener"].GetBool()){
+        is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString());
+    } else {
+        is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());
+    }
+
+    Document response;
+    response.SetObject();
+    response.AddMember("authorized", is_authorized, response.GetAllocator());
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    response.Accept(writer);
+    return buffer.GetString();
 }
 
-void AdminServer::parse_query() {
-
+void AdminServer::prepare_command_table() {
+    command_table["ban"] = BAN;
+    command_table["unban"] = UNBAN;
+    command_table["get_users"] = USERS;
+    command_table["set_max_users"] = SET_MAX_SIZE;
+    command_table["set_privacy"] = SET_PRIVACY;
 }
 
 int main(){

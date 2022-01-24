@@ -7,8 +7,11 @@
 
 #include "sockets.h"
 #include "Server.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 using namespace std;
+using namespace rapidjson;
 
 Server::Server() {
 
@@ -56,9 +59,8 @@ int Server::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
     return n_socket;
 }
 
-size_t Server::query_admin(char* query){
-    int request_size;
-    send(admin_socket, query, sizeof(query), 0);
+size_t Server::query_admin(string query){
+    int request_size = send(admin_socket, &query[0], query.size(), 0);
     return recv(admin_socket, admin_response.data(), admin_response.size(), 0);
 }
 
@@ -96,21 +98,33 @@ int Server::run() {
                 cerr << e.what() << endl;
                 continue;
             }
+            string query = create_admin_query(message);
+
+
+            strcpy(admin_query.data(), &query[0]);
+            query_admin(admin_query.data());
+
+            Document admin_response_json;
+            admin_response_json.Parse(admin_response.data());
+            if (!admin_response_json["authorized"].GetBool()) {
+                cerr << "User " << message.user_id << " is banned from channel " << message.channel << "." << endl;
+                channels[message.channel].erase(clientInfo);
+                continue;
+            }
             channels[message.channel].insert(clientInfo);
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
             cout << endl;
             clients_datagram_count[client_message.data()]++;
 
-            strcpy(admin_query.data(), "SOME_QUERY");
-            query_admin(admin_query.data());
-
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
+                message_history[message.channel].push(message);
                 for (auto& cl : channels[message.channel]) {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
             }
+
         }
     }
     FD_CLR(server_socket, &sockets);
@@ -155,6 +169,30 @@ void Server::handle_interrupt() {
     cout << signal_info.si_errno << endl;
 
     server_active = false;
+}
+
+const string Server::create_admin_query(const Message& message) {
+    Document query_json;
+    query_json.SetObject();
+    rapidjson::Value channel;
+    channel = StringRef(message.channel.c_str());
+    rapidjson::Value userId;
+    userId = StringRef(message.user_id.c_str());
+    rapidjson::Value listener(message.is_listener);
+
+    query_json.AddMember("channel", channel, query_json.GetAllocator());
+    query_json.AddMember("listener", listener, query_json.GetAllocator());
+    query_json.AddMember("userId", userId, query_json.GetAllocator());
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    query_json.Accept(writer);
+    // TODO remove, debug purposes
+    cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
+    cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
+    cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
+    string res = buffer.GetString();
+
+    return buffer.GetString();
 }
 
 int main() {
