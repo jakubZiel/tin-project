@@ -27,6 +27,8 @@ Client::Client() {
 
     request_buffer = vector<char>(200);
     is_last = vector<char>(200);
+
+    int is_banned;
 }
 
 int Client::run() {
@@ -62,7 +64,7 @@ string Client::decide_input_method() {
 }
 
 void Client::handle_interactive_session() {
-    make_non_blocking(client_socket);
+    //make_non_blocking(client_socket);
 
     string message;
     while (client_active) {
@@ -84,7 +86,7 @@ void Client::handle_interactive_session() {
 }
 
 void Client::handle_batch_session() {
-    make_non_blocking(client_socket);
+    //make_non_blocking(client_socket);
     cout << "File path: ";
     string path;
     getline(cin, path);
@@ -161,20 +163,20 @@ void Client::prepare_message(string &channel, string &message, bool is_listener)
     Writer<StringBuffer> writer(buffer);
     result.Accept(writer);
 
-    send_data_to_server(buffer.GetString());
+    send_data_to_server(buffer.GetString(), message);
 }
 
-bool Client::send_data_to_server(const char * data) {
-//    socklen_t server_address_len = sizeof(server_address);
+bool Client::send_data_to_server(const char * data, string message) {
+    socklen_t server_address_len = sizeof(server_address);
     strcpy(request_buffer.data(), data);
     if (sendto(client_socket, request_buffer.data(), request_buffer.size(), 0, (sockaddr *) &server_address, sizeof(server_address)) <= 0) {
         cout << "Send / Err :" << errno << endl;
         return false;
     } else {
-//        int is_banned = recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address, &server_address_len);
-//        if (is_banned > 0) {
-//            cout << is_last.data() << endl;
-//        }
+        is_banned = recvfrom(client_socket, is_last.data(), is_last.size(), 0, (sockaddr *) &server_address, &server_address_len);
+        if (is_banned > 0 && is_last.data() != message) {
+            cout << is_last.data() << endl;
+        }
         cout << "Wrote " << data << endl;
         return true;
     }

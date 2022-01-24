@@ -17,6 +17,8 @@ private:
     int signal_fd;
     bool client_active;
 
+    int is_banned;
+
     std::string decide_input_method();
 
     void handle_interactive_session();
@@ -24,7 +26,7 @@ private:
     void handle_listening_session();
 
     void prepare_message(std::string &channel, std::string &message, bool is_listener);
-    bool send_data_to_server(const char * data);
+    bool send_data_to_server(const char * data, std::string message);
 
     size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
 
