@@ -34,7 +34,6 @@ private:
     std::unordered_map<std::string, std::unordered_set<ClientInfo>> channels;
     std::vector<char> response;
 
-    std::map<std::string, int> clients_datagram_count;
     std::vector<char> admin_query;
 
     std::vector<char> admin_response;

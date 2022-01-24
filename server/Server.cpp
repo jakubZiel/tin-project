@@ -127,8 +127,6 @@ int Server::run() {
             cout << "client ports: "; // TODO debug, remove in the future
             for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
             cout << endl;
-            clients_datagram_count[client_message.data()]++;
-
 
             if (!message.is_listener) {
                 strcpy(response.data(), message.message.c_str());
@@ -137,16 +135,11 @@ int Server::run() {
                     sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
                 }
             }
-
         }
     }
     FD_CLR(server_socket, &sockets);
     close(server_socket);
 
-    // TODO remove in the future, development purposes
-    for (const auto& client_record : clients_datagram_count) {
-        cout << "Client nr:" + client_record.first + " sent:" << client_record.second << endl;
-    }
     return 0;
 }
 
