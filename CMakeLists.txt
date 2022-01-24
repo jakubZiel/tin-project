@@ -15,7 +15,6 @@ add_executable(tin-client
 
 add_executable(server-adm
         server/AdminServer.cpp
-        server/admin-server/MessageParser.cpp
         server/admin-server/ChannelManager.cpp
         server/admin-server/Logger.cpp
         )

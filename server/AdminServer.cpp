@@ -154,18 +154,20 @@ void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &
     document.Parse(request.data());
     cout << request.data();
     string channel = document["channel"].GetString();
-    string user = document["user_id"].GetString();
+    string user;
     int size;
 
     switch (command_table[document["command"].GetString()]) {
         case BAN:
+            user = document["user_id"].GetString();
             channelManager.ban_from_channel(channel, user);
             break;
         case UNBAN:
+            user = document["user_id"].GetString();
             channelManager.unban_from_channel(channel, user);
             break;
         case USERS:
-            channelManager.get_clients(channel);
+            channelManager.get_banned_users(channel);
             break;
         case SET_MAX_SIZE:
             size = document["max_users"].GetInt();

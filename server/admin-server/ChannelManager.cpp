@@ -51,6 +51,14 @@ void ChannelManager::unban_from_channel(const std::string &channel, const std::s
         channels[channel].banned.erase(client);
 }
 
-std::string ChannelManager::get_clients(std::string channel) {
-    return "clients : 1, 2, 3, 4, 5";
+std::string ChannelManager::get_banned_users(const std::string& channel) {
+
+    auto req_channel = channels[channel];
+    std::string banned_users;
+
+    for (auto banned : req_channel.banned){
+        banned_users += banned.first + " | ";
+    }
+
+    return banned_users;
 }

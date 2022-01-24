@@ -35,6 +35,6 @@ public:
     void ban_from_channel(const std::string& channel, const std::string& client);
     void unban_from_channel(const std::string &channel, const std::string& client);
 
-    std::string get_clients(std::string channel);
+    std::string get_banned_users(const std::string& channel);
 };
 #endif
