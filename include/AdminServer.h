@@ -14,6 +14,8 @@
 #define USERS 2
 #define SET_MAX_SIZE 3
 #define SET_PRIVACY 4
+#define UNBAN 5
+
 #define BAD_COMMAND 100
 
 class AdminServer {
@@ -57,13 +59,13 @@ public:
 
     void handle_command_request();
     void handle_query();
+    std::string handle_query(std::string &document);
     void handle_interrupt();
 
     void prepare_signal_fd();
     void make_non_blocking(int fd);
 
     int parse_command();
-    void parse_query();
 
     int run();
 };

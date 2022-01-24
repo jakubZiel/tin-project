@@ -7,10 +7,14 @@
 #include <sys/signalfd.h>
 #include <csignal>
 #include <fcntl.h>
-
+#include <rapidjson/document.h>
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "AdminServer.h"
 
 using namespace std;
+using namespace rapidjson;
+
 
 AdminServer::AdminServer() {
     queue_size = 20;
@@ -20,10 +24,10 @@ AdminServer::AdminServer() {
 
     msg_server_address_size = sizeof(msg_server_address);
 
-    _request = vector<char>(50);
-    _response = vector<char>(50);
-    _command = vector<char>(50);
-    _command_response = vector<char>(50);
+    _request = vector<char>(1000);
+    _response = vector<char>(1000);
+    _command = vector<char>(1000);
+    _command_response = vector<char>(1000);
 
     admin_server_active = true;
     connection_opened = false;
@@ -78,7 +82,7 @@ void AdminServer::handle_msg_server_connection() {
             if (FD_ISSET(msg_server_connection_socket,  &ready_sockets))
                 handle_query();
             if (FD_ISSET(cmd_socket, &ready_sockets))
-                    handle_command_request();
+                handle_command_request();
         }
     }
     FD_CLR(msg_server_connection_socket, &server_sockets);
@@ -88,6 +92,13 @@ void AdminServer::handle_msg_server_connection() {
 void AdminServer::handle_query() {
     long status = recv(msg_server_connection_socket, _request.data(), _request.size(), 0);
     find_record(_request, _response);
+
+    //TODO server sending queries
+    /*string query = string(_request.data());
+    string response = handle_query(query);
+    strcpy(_response.data(), &response[0]);
+    cout << "QUERY RESPONSE : " << _response.data() << endl;*/
+
     cout << "query answered" << endl;
     send(msg_server_connection_socket, _response.data(), _response.size(), 0);
 }
@@ -141,6 +152,9 @@ void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &
     switch (parse_command()) {
         case BAN:
             channelManager.ban_from_channel(channel, client);
+        case UNBAN:
+            channelManager.unban_from_channel(channel, client);
+            break;
         case USERS:
             channelManager.get_clients(channel);
             break;
@@ -199,8 +213,26 @@ int AdminServer::parse_command() {
     return BAN;
 }
 
-void AdminServer::parse_query() {
+string AdminServer::handle_query(string& query){
+    Document document;
+    document.Parse(query.c_str());
 
+    bool is_authorized;
+
+    if (document["listener"].GetBool()){
+        is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString());
+    } else {
+        is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());
+    }
+
+    Document response;
+    response.SetObject();
+    response.AddMember("authorized", is_authorized, response.GetAllocator());
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    response.Accept(writer);
+    return buffer.GetString();
 }
 
 int main(){

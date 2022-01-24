@@ -30,6 +30,10 @@ void ChannelManager::ban_from_channel(const std::string& channel, const std::str
     channels[channel].banned[client] = ClientInfo();
 }
 
+void ChannelManager::unban_from_channel(const std::string &channel, const std::string &client) {
+    channels[channel].banned.erase(client);
+}
+
 std::string ChannelManager::get_clients(std::string channel) {
     return "clients : 1, 2, 3, 4, 5";
 }
