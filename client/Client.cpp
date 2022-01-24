@@ -86,6 +86,7 @@ void Client::handle_batch_session() {
     while (getline(message_file, line)) {
         vector<string> args;
         split(line, args, ' ');
+        affected_channels.insert(args[0]);
         prepare_message(args[0], args[1], false);
     }
 
