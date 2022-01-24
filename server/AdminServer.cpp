@@ -10,13 +10,18 @@
 #include <rapidjson/document.h>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include <iostream>
+#include <iomanip>
+#include <ctime>
+
 #include "AdminServer.h"
 #include "constants.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace rapidjson;
 
-AdminServer::AdminServer() {
+AdminServer::AdminServer() : logger(LOGFILE) {
     queue_size = 20;
 
     admin_server_address = inet_association(AF_INET, ADMIN_PORT, INADDR_ANY);
@@ -31,6 +36,8 @@ AdminServer::AdminServer() {
 
     admin_server_active = true;
     connection_opened = false;
+
+    string logfile_path = LOGFILE;
 
     prepare_command_table();
 }
@@ -224,6 +231,19 @@ string AdminServer::handle_query(string& query){
         is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString(), document["current_users_number"].GetInt());
     } else {
         is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());
+    }
+
+    if (!is_authorized) {
+        Value date;
+        auto t = std::time(nullptr);
+        auto tm = *std::localtime(&t);
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+        auto str = oss.str();
+        date = StringRef(str.c_str());
+
+        document.AddMember("timestamp", date, document.GetAllocator());
+        logger.log(document);
     }
 
     Document response;

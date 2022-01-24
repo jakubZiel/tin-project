@@ -17,7 +17,8 @@ add_executable(server-adm
         server/AdminServer.cpp
         server/admin-server/MessageParser.cpp
         server/admin-server/ChannelManager.cpp
-        server/admin-server/Logger.cpp include/Logger.h)
+        server/admin-server/Logger.cpp
+        )
 
 add_executable(client-adm
         client/AdminClient.cpp

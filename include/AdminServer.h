@@ -5,17 +5,20 @@
 #ifndef TIN_21Z_ADMINSERVER_H
 #define TIN_21Z_ADMINSERVER_H
 
+
 #include "constants.h"
 #include <sys/signalfd.h>
 #include <vector>
 #include "ChannelManager.h"
+#include "Logger.h"
+
 
 #define BAN 1
 #define USERS 2
 #define SET_MAX_SIZE 3
 #define SET_PRIVACY 4
 #define UNBAN 5
-
+#define LOGFILE "logfile"
 #define BAD_COMMAND 100
 
 class AdminServer {
@@ -45,7 +48,7 @@ private:
     bool connection_opened;
 
     ChannelManager channelManager;
-
+    Logger logger;
     std::unordered_map<std::string, int> command_table;
 
 public:

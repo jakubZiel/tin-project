@@ -6,15 +6,18 @@
 #define TIN_21Z_LOGGER_H
 
 #include <string>
+#include <fstream>
+#include <rapidjson/document.h>
 
 using path_type = std::string;
 
 class Logger {
-    std::string log_file;
-
+    std::ofstream file;
 public:
+    Logger() = default;
     Logger(std::string path);
-    void log(std::string event);
+    void log(rapidjson::Document & event);
+    ~Logger();
 };
 
 #endif //TIN_21Z_LOGGER_H

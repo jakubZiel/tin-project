@@ -10,6 +10,7 @@
 #include "Client.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace rapidjson;
