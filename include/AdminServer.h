@@ -46,10 +46,11 @@ private:
 
     ChannelManager channelManager;
 
+    std::unordered_map<std::string, int> command_table;
+
 public:
     AdminServer();
 
-    void find_record(std::vector<char> &request, std::vector<char> &response);
     void handle_command(std::vector<char> &command, std::vector<char> &response);
     int bind_socket(int protocol_type, sockaddr_in& address_to_bind);
     void prepare_fdset();
@@ -64,8 +65,7 @@ public:
 
     void prepare_signal_fd();
     void make_non_blocking(int fd);
-
-    int parse_command();
+    void prepare_command_table();
 
     int run();
 };
