@@ -101,12 +101,16 @@ void AdminServer::handle_msg_server_connection() {
 void AdminServer::handle_query() {
     long status = recv(msg_server_connection_socket, _request.data(), _request.size(), 0);
 
-    string query = string(_request.data());
-    string response = handle_query(query);
-    strcpy(_response.data(), &response[0]);
-    cout << "QUERY RESPONSE : " << _response.data() << endl;
-
-    send(msg_server_connection_socket, _response.data(), _response.size(), 0);
+    if (status == 0){
+        connection_opened = false;
+        cout << "Message server has disconnected. Waiting for new connection..." << endl;
+    } else {
+        string query = string(_request.data());
+        string response = handle_query(query);
+        strcpy(_response.data(), &response[0]);
+        cout << "QUERY RESPONSE : " << _response.data() << endl;
+        send(msg_server_connection_socket, _response.data(), _response.size(), 0);
+    }
 }
 
 

@@ -61,7 +61,19 @@ int Server::bind_socket(int protocol_type, sockaddr_in &address_to_bind) {
 
 size_t Server::query_admin(string query){
     int request_size = send(admin_socket, &query[0], query.size(), 0);
-    return recv(admin_socket, admin_response.data(), admin_response.size(), 0);
+    long status = 0;
+
+    if (request_size != -1) {
+        status = recv(admin_socket, admin_response.data(), admin_response.size(), 0);
+
+        if (status == 0) {
+            server_active = false;
+        }
+
+    }  else {
+        server_active = false;
+    }
+    return status;
 }
 
 int Server::run() {
@@ -100,25 +112,26 @@ int Server::run() {
 
             send_query_to_admin(message);
 
-            Document admin_response_json;
-            admin_response_json.Parse(admin_response.data());
-            if (!admin_response_json["authorized"].GetBool()) {
-                send_error_message(clientInfo);
-                channels[message.channel].erase(clientInfo);
-                continue;
-            }
+            if (server_active) {
+                Document admin_response_json;
+                admin_response_json.Parse(admin_response.data());
+                if (!admin_response_json["authorized"].GetBool()) {
+                    send_error_message(clientInfo);
+                    channels[message.channel].erase(clientInfo);
+                    continue;
+                }
 
-            if (message.channel == END_CHANNEL) {
-                remove_client_from_channels(clientInfo, message);
-                continue;
-            }
+                if (message.channel == END_CHANNEL) {
+                    remove_client_from_channels(clientInfo, message);
+                    continue;
+                }
+                channels[message.channel].insert(clientInfo);
 
-            channels[message.channel].insert(clientInfo);
-
-            if (!message.is_listener) {
-                send_message_to_clients(message);
-            } else {
-                send_message_to_listener(clientInfo, message);
+                if (!message.is_listener) {
+                    send_message_to_clients(message);
+                } else {
+                    send_message_to_listener(clientInfo, message);
+                }
             }
         }
     }
