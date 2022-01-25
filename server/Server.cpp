@@ -77,7 +77,6 @@ int Server::run() {
     prepare_signal_fd();
 
     while (server_active) {
-        //TODO add signalfd , add select
         ready_sockets = sockets;
         if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
             cout << "Select fail, errno: " << errno << endl;
@@ -98,44 +97,28 @@ int Server::run() {
                 cerr << e.what() << endl;
                 continue;
             }
-            string query = create_admin_query(message);
 
-            strcpy(admin_query.data(), &query[0]);
-            query_admin(admin_query.data());
+            send_query_to_admin(message);
 
             Document admin_response_json;
             admin_response_json.Parse(admin_response.data());
             if (!admin_response_json["authorized"].GetBool()) {
-                auto error_message =  "Channel access denied. You have either been banned or the channel is full.";
-                cerr << error_message << endl;
-                strcpy(response.data(), error_message);
-                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
+                send_error_message(clientInfo);
                 channels[message.channel].erase(clientInfo);
                 continue;
             }
 
             if (message.channel == END_CHANNEL) {
-                auto client_channels = find_client_channels(message.message, '^');
-                for (auto& channel : client_channels) {
-                    channels[channel].erase(clientInfo);
-                }
+                remove_client_from_channels(clientInfo, message);
                 continue;
             }
 
             channels[message.channel].insert(clientInfo);
-            cout << "client ports: "; // TODO debug, remove in the future
-            for (auto& el : channels[message.channel]) { cout << el.addr.sin_port << " "; }
-            cout << endl;
 
             if (!message.is_listener) {
-                strcpy(response.data(), message.message.c_str());
-                message_history[message.channel].push(message);
-                for (auto& cl : channels[message.channel]) {
-                    sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
-                }
+                send_message_to_clients(message);
             } else {
-                strcpy(response.data(), print_message_history(message.channel).c_str());
-                sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
+                send_message_to_listener(clientInfo, message);
             }
         }
     }
@@ -145,6 +128,38 @@ int Server::run() {
     return 0;
 }
 
+void Server::send_message_to_listener(const ClientInfo &clientInfo, Message &message) {
+    strcpy(response.data(), print_message_history(message.channel).c_str());
+    sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
+}
+
+void Server::send_message_to_clients(const Message &message) {
+    strcpy(response.data(), message.message.c_str());
+    message_history[message.channel].push(message);
+    for (auto& cl : channels[message.channel]) {
+        sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &cl.addr, sizeof(cl.addr));
+    }
+}
+
+void Server::remove_client_from_channels(const ClientInfo &clientInfo, const Message &message) {
+    auto client_channels = find_client_channels(message.message, '^');
+    for (auto& channel : client_channels) {
+        channels[channel].erase(clientInfo);
+    }
+}
+
+void Server::send_query_to_admin(const Message &message) {
+    string query = create_admin_query(message);
+    strcpy(admin_query.data(), &query[0]);
+    query_admin(admin_query.data());
+}
+
+void Server::send_error_message(const ClientInfo &clientInfo) {
+    auto error_message =  "Channel access denied. You have either been banned or the channel is full.";
+    cerr << error_message << endl;
+    strcpy(response.data(), error_message);
+    sendto(server_socket, response.data(), response.size(), 0, (sockaddr *) &clientInfo.addr, sizeof(clientInfo.addr));
+}
 
 
 void Server::prepare_fdset() {
@@ -181,7 +196,7 @@ void Server::handle_interrupt() {
     server_active = false;
 }
 
-const string Server::create_admin_query(const Message& message) {
+string Server::create_admin_query(const Message& message) {
     Document query_json;
     query_json.SetObject();
     rapidjson::Value channel;
@@ -198,11 +213,6 @@ const string Server::create_admin_query(const Message& message) {
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
     query_json.Accept(writer);
-    // TODO remove, debug purposes
-    cout << "Channel to admin: " << query_json["channel"].GetString() << endl;
-    cout << "Listener to admin: " << query_json["listener"].GetBool() << endl;
-    cout << "Current users number to admin: " << query_json["current_users_number"].GetInt() << endl;
-    cout << "UserId to admin: " << query_json["userId"].GetString() << endl;
     string res = buffer.GetString();
 
     return buffer.GetString();

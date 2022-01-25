@@ -46,11 +46,21 @@ private:
 
     void prepare_signal_fd();
     void handle_interrupt();
-    const std::string create_admin_query(const Message& message);
+    std::string create_admin_query(const Message& message);
 
     std::vector<std::string> find_client_channels(const std::string& channels_string, char delimiter);
 
     std::basic_string<char> print_message_history(std::string basicString);
+
+    void send_error_message(const ClientInfo &clientInfo);
+
+    void send_query_to_admin(const Message &message);
+
+    void remove_client_from_channels(const ClientInfo &clientInfo, const Message &message);
+
+    void send_message_to_clients(const Message &message);
+
+    void send_message_to_listener(const ClientInfo &clientInfo, Message &message);
 };
 
 #endif //TIN_21Z_SERVER_H
