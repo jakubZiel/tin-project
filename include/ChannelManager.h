@@ -19,7 +19,7 @@ public:
     bool is_private;
     std::unordered_map<std::string, ClientInfo> banned;
     size_t max_size = DEFAULT_SIZE;
-    size_t listening_clients;
+    size_t clients;
     std::unordered_map<std::string, ClientInfo> senders;
 };
 
@@ -27,8 +27,8 @@ class ChannelManager {
     std::unordered_map<std::string, Channel> channels;
 public:
     bool is_banned(const std::string& client, const std::string& channel);
-    bool can_send(const std::string& client, const std::string& channel);
-    bool can_listen(const std::string& client, const std::string& channel, int currently_listening);
+    bool can_send(const std::string &client, const std::string &channel, int i);
+    bool can_listen(const std::string& client, const std::string& channel, int current_clients);
 
     void set_privacy(const std::string& channel, bool is_private);
     void set_max_size(const std::string& channel, size_t size);

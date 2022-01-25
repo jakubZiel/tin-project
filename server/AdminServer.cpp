@@ -232,7 +232,7 @@ string AdminServer::handle_query(string& query){
     if (document["listener"].GetBool()){
         is_authorized = channelManager.can_listen(document["userId"].GetString(), document["channel"].GetString(), document["current_users_number"].GetInt());
     } else {
-        is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString());
+        is_authorized = channelManager.can_send(document["userId"].GetString(), document["channel"].GetString(),document["current_users_number"].GetInt());
     }
 
     if (!is_authorized) {
@@ -262,7 +262,7 @@ void AdminServer::prepare_command_table() {
     command_table["ban"] = BAN;
     command_table["unban"] = UNBAN;
     command_table["get_banned_users"] = USERS;
-    command_table["set_max_users"] = SET_MAX_SIZE;
+    command_table["max_users"] = SET_MAX_SIZE;
     command_table["set_privacy"] = SET_PRIVACY;
 }
 
