@@ -10,21 +10,23 @@ bool ChannelManager::is_banned(const std::string& client, const std::string& cha
     return false;
 }
 
-bool ChannelManager::can_send(const std::string& client, const std::string& channel) {
+bool ChannelManager::can_send(const std::string &client, const std::string &channel, int current_clients) {
     if (channels.find(channel) != channels.end()) {
-        return !is_banned(client, channel);
+        return !is_banned(client, channel)
+               && channels[channel].clients < channels[channel].max_size
+               && current_clients < channels[channel].max_size;
     } else {
         channels[channel] = Channel();
         return true;
     }
 }
 
-bool ChannelManager::can_listen(const std::string& client, const std::string& channel, int currently_listening) {
+bool ChannelManager::can_listen(const std::string& client, const std::string& channel, int current_clients) {
     if (channels.find(channel) != channels.end()) {
-        channels[channel].listening_clients = currently_listening;
+        channels[channel].clients = current_clients;
         return !is_banned(client, channel)
-            && channels[channel].listening_clients < channels[channel].max_size
-            && currently_listening < channels[channel].max_size;
+               && channels[channel].clients < channels[channel].max_size
+               && current_clients < channels[channel].max_size;
     } else {
         channels[channel] = Channel();
         return true;
