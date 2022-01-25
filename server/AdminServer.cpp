@@ -112,8 +112,10 @@ void AdminServer::handle_query() {
 
 void AdminServer::handle_command_request() {
     admin_client_address_size = sizeof (admin_client_address);
-    recvfrom(cmd_socket, _command.data(), _command.size(), 0, (sockaddr*) &admin_client_address, &admin_client_address_size);
+    memset(_command.data(), 0, _command.size());
+    memset(_command_response.data(), 0, _command_response.size());
 
+    recvfrom(cmd_socket, _command.data(), _command.size(), 0, (sockaddr*) &admin_client_address, &admin_client_address_size);
     handle_command(_command, _command_response);
 
     sendto(cmd_socket, _command_response.data(), _command_response.size(), 0, (sockaddr*) &admin_client_address, admin_client_address_size);
@@ -150,38 +152,45 @@ sockaddr_in AdminServer::inet_association(sa_family_t in_family, in_port_t port,
 
 void AdminServer::handle_command(std::vector<char> &request, std::vector<char> &response) {
     Document document;
+    StringStream stream(request.data());
 
-    document.Parse(request.data());
-    cout << request.data();
+    document.ParseStream<kParseStopWhenDoneFlag>(stream);
+
+    cout << "command to handle : " << request.data() << endl;
     string channel = document["channel"].GetString();
     string user;
     int size;
+    string users;
 
     switch (command_table[document["command"].GetString()]) {
         case BAN:
             user = document["user_id"].GetString();
             channelManager.ban_from_channel(channel, user);
+            strcpy(response.data(), "HANDLED");
             break;
         case UNBAN:
             user = document["user_id"].GetString();
             channelManager.unban_from_channel(channel, user);
+            strcpy(response.data(), "HANDLED");
             break;
         case USERS:
-            channelManager.get_banned_users(channel);
+            users = channelManager.get_banned_users(channel);
+            strcpy(response.data(), users.c_str());
             break;
         case SET_MAX_SIZE:
             size = document["max_users"].GetInt();
             channelManager.set_max_size(channel, size);
+            strcpy(response.data(), "HANDLED");
             break;
         case SET_PRIVACY:
             channelManager.set_privacy(channel, true);
+            strcpy(response.data(), "HANDLED");
             break;
         default:
             perror("bad command\n");
     }
 
-    cout << "command handled : " << request.data() << endl;
-    strcpy(response.data(), "HANDLED");
+    cout << "command response : " << response.data() << endl;
 }
 
 void AdminServer::prepare_signal_fd() {

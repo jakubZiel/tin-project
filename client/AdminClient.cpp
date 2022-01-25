@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <fstream>
+#include <cstring>
 
 #include "AdminClient.h"
 
@@ -24,7 +25,7 @@ AdminClient::AdminClient() {
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(CMD_PORT);
     server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    _response = vector<char>(50);
+    _response = vector<char>(500);
 }
 
 bool AdminClient::send_command(string &data) {
@@ -42,6 +43,8 @@ bool AdminClient::send_command(string &data) {
 
 bool AdminClient::get_response() {
     socklen_t server_address_len = sizeof(server_address);
+    memset(_response.data(), 0, _response.size());
+
     if (recvfrom(client_socket, _response.data(), _response.size(), 0, (sockaddr *) &server_address,
                  &server_address_len) <= 0) {
 
@@ -189,6 +192,8 @@ void AdminClient::handle_command_arguments_interactive(int command_code) {
             handle_unban_user();
             break;
     }
+    get_response();
+
 }
 
 void AdminClient::handle_command_arguments_batch(int command_code, std::vector<string> &args) {
@@ -255,7 +260,6 @@ void AdminClient::prepare_get_banned_users_message(string &channel) {
     string message =
             R"({"command":"get_banned_users","channel":")" + channel + "\"}";
     send_data_to_server(message);
-    get_response();
 }
 
 void AdminClient::handle_set_max_stored_messages() {
