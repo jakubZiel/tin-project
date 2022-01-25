@@ -19,7 +19,7 @@ Server::Server() {
     server_address = associate_inet(AF_INET, SERVER_PORT, INADDR_ANY);
     admin_server_address = associate_inet(AF_INET, ADMIN_PORT, inet_addr("127.0.0.1"));
 
-    client_message = vector<char>(2000); // TODO put size in a constant
+    client_message = vector<char>(2000);
     response = vector<char>(2000);
     admin_query = vector<char>(1000);
     admin_response = vector<char>(1000);

@@ -81,7 +81,7 @@ void AdminServer::handle_msg_server_connection() {
 
     while (connection_opened){
         ready_sockets = server_sockets;
-        //TODO  add fdset for writing to sockets
+
         if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0){
             cout << "select fail, errno : " << errno << endl;
             connection_opened = false;
